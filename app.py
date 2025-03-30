@@ -9,7 +9,7 @@ st.markdown("""
     <style>
     /* Full-screen background for first page */
     .input-page {
-        background-image: url('https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1');
+        background-image: url('https://images.unsplash.com/photo-1507608612959-6e87d901ddbe');
         background-size: cover;
         background-position: center;
         position: fixed;
@@ -20,48 +20,51 @@ st.markdown("""
         z-index: -1;
     }
     .input-container {
-        background-color: rgba(255, 245, 238, 0.9); /* Ivory with transparency */
+        background-color: rgba(245, 245, 245, 0.9); /* Light grey with transparency */
         border-radius: 15px;
         padding: 40px;
         margin: 50px auto;
         max-width: 600px;
         box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        border: 1px solid #2F4858; /* Slate blue border */
     }
     .input-header {
-        font-family: 'Playfair Display', serif;
+        font-family: 'Garamond', serif;
         font-size: 40px;
         font-weight: bold;
-        color: #006D77; /* Teal */
+        color: #1B263B; /* Navy blue */
         text-align: center;
         margin-bottom: 20px;
         text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+        border-bottom: 2px solid #778DA9; /* Light slate grey */
+        padding-bottom: 10px;
     }
     .input-subheader {
-        font-family: 'Playfair Display', serif;
+        font-family: 'Garamond', serif;
         font-size: 24px;
-        color: #FF6F61; /* Coral */
+        color: #2F4858; /* Slate blue */
         text-align: center;
         margin-bottom: 30px;
     }
     .input-label {
-        font-family: 'Lora', serif;
+        font-family: 'Garamond', serif;
         font-size: 18px;
-        color: #006D77;
+        color: #1B263B; /* Navy blue */
         margin-bottom: 15px;
     }
     .stTextArea textarea {
-        font-family: 'Lora', serif;
+        font-family: 'Garamond', serif;
         font-size: 16px;
         color: #333333;
         background-color: #FFFFFF;
-        border: 2px solid #FF6F61;
+        border: 2px solid #778DA9; /* Light slate grey */
         border-radius: 10px;
         padding: 15px;
         box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
     }
     .stButton button {
-        font-family: 'Playfair Display', serif;
-        background-color: #FF6F61;
+        font-family: 'Garamond', serif;
+        background-color: #2F4858; /* Slate blue */
         color: white;
         border-radius: 10px;
         padding: 12px 30px;
@@ -72,7 +75,7 @@ st.markdown("""
         font-size: 18px;
     }
     .stButton button:hover {
-        background-color: #E85A4F;
+        background-color: #1B263B; /* Navy blue */
     }
     /* Itinerary page styling (unchanged) */
     .main {
@@ -158,9 +161,6 @@ st.markdown("""
     }
     </style>
 """, unsafe_allow_html=True)
-
-# Add required fonts via Google Fonts
-st.markdown('<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Lora&display=swap" rel="stylesheet">', unsafe_allow_html=True)
 
 # Initialize session state
 if "stage" not in st.session_state:
@@ -514,11 +514,12 @@ DESTINATION_DATA = {
         "country": "Egypt", "cost_multiplier": 0.7
     }
 }
+
 # ======================
 # MAIN APP
 # ======================
 def main():
-    # Stage 1: Input Collection (New Styling)
+    # Stage 1: Input Collection (New Styling with Blues and Greys)
     if st.session_state.stage == "input_refinement":
         st.markdown('<div class="input-page"></div>', unsafe_allow_html=True)  # Full-screen background
         st.markdown('<div class="input-container">', unsafe_allow_html=True)
@@ -544,7 +545,7 @@ def main():
                     st.error("Please enter your trip details.")
         st.markdown('</div>', unsafe_allow_html=True)
 
-    # Other stages (with original styling)
+    # Other stages (with original beige/gold styling)
     else:
         st.markdown('<div class="main">', unsafe_allow_html=True)
         
