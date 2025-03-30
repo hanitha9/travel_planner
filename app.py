@@ -1,11 +1,21 @@
 import streamlit as st
+import pip
+
+def install(package):
+    if hasattr(pip, 'main'):
+        pip.main(['install', package])
+    else:
+        pip._internal.main(['install', package])
+
+install('geopy')
+install('pytz')
+
 import re
 from datetime import datetime, timedelta
 import random
 from collections import defaultdict
 import geopy.distance
 import pytz
-
 # Custom CSS for updated aesthetics
 st.markdown("""
     <style>
