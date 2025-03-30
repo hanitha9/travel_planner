@@ -1,0 +1,11 @@
+System Prompt (Input Refinement): [Paste from previous response]
+User Prompt (Input Refinement): "Paris from New York, June 1–7, 2025, moderate budget, art and food."
+Model Response (Input Refinement): [Paste from previous response]
+
+System Prompt (Activity Suggestions): [Paste from previous response]
+User Prompt (Activity Suggestions): [Paste confirmed preferences from previous response]
+Model Response (Activity Suggestions): [Paste from previous response]
+
+System Prompt (Itinerary Generation): [Paste from previous response]
+User Prompt (Itinerary Generation): [Paste from previous response]
+Model Response (Itinerary Generation): [Paste from previous response]
