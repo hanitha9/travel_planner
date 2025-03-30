@@ -3,7 +3,7 @@ import re
 from datetime import datetime, timedelta
 import random
 
-# Enhanced Custom CSS
+# Custom CSS for updated aesthetics
 st.markdown("""
     <style>
     .title {
@@ -24,7 +24,6 @@ st.markdown("""
         font-weight: bold;
         color: #FFD700;
         margin-top: 20px;
-        margin-bottom: 15px;
     }
     .suggestion-box {
         background-color: #FFFFFF;
@@ -38,7 +37,7 @@ st.markdown("""
         padding: 15px;
         border-radius: 10px;
         box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        margin-bottom: 15px;
+        margin-bottom: 10px;
         transition: transform 0.2s;
     }
     .itinerary-card:hover {
@@ -225,9 +224,31 @@ def parse_interests(text):
             interests.append(interest)
     return interests if interests else ["art", "food"]
 
+# Helper function for default interests
+def get_default_interests(prefs):
+    if "interests" in prefs:
+        return [i.capitalize() for i in prefs["interests"]]
+    return []
+
 # Header with Dynamic Image
 st.markdown('<div class="title">AI-Powered Travel Planner</div>', unsafe_allow_html=True)
 st.markdown('<div class="subtitle">Let\'s craft your dream trip with a personalized itinerary!</div>', unsafe_allow_html=True)
+
+# Scroll to section if set
+if st.session_state.scroll_to:
+    st.markdown(f"""
+        <script>
+        setTimeout(() => {{
+            let element = document.getElementById("{st.session_state.scroll_to}");
+            if (element) {{
+                element.scrollIntoView({{behavior: "smooth", block: "start"}});
+            }} else {{
+                console.log("Element {st.session_state.scroll_to} not found");
+            }}
+        }}, 500);
+        </script>
+    """, unsafe_allow_html=True)
+    st.session_state.scroll_to = None
 
 # Stage 1: Input Refinement
 if st.session_state.stage == "input_refinement":
@@ -241,7 +262,7 @@ if st.session_state.stage == "input_refinement":
         )
         submit_button = st.form_submit_button(label="Plan My Trip")
     
-    if submit_button:
+    if submit_button and user_input:
         prefs = {
             "raw_input": user_input,
             "destination": parse_destination(user_input),
@@ -315,7 +336,7 @@ elif st.session_state.stage == "refine_preferences":
         )
         
         interest_options = ["Art", "Food", "History", "Nature", "Shopping", "Adventure"]
-        default_interests = [i.capitalize() for i in prefs["interests"] if "interests" in prefs else []
+        default_interests = get_default_interests(prefs)
         new_interests = st.multiselect(
             "Your Interests:",
             interest_options,
