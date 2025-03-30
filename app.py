@@ -188,24 +188,243 @@ def search_activities(destination, interest):
 # DESTINATION DATABASE
 # ======================
 DESTINATION_DATA = {
+    # Europe (8 destinations)
     "Paris": {
         "image": "https://images.unsplash.com/photo-1502602898657-3e91760cbb34",
+        "coordinates": (48.8566, 2.3522), "timezone": "Europe/Paris",
         "activities": {
-            "art": ["Louvre Museum", "Musée d'Orsay", "Centre Pompidou"],
+            "art": ["Louvre Museum", "Musée d'Orsay", "Centre Pompidou", "Rodin Museum"],
+            "landmarks": ["Eiffel Tower", "Notre-Dame Cathedral", "Arc de Triomphe"],
             "food": ["Le Marais Food Tour", "Montmartre Cafés", "Seine River Dinner"],
-            "culture": ["Latin Quarter Walk", "Père Lachaise Cemetery"],
-            "history": ["Notre-Dame Cathedral", "Eiffel Tower"]
+            "culture": ["Latin Quarter Walk", "Shakespeare & Company", "Père Lachaise"]
         },
-        "country": "France"
+        "country": "France", "cost_multiplier": 1.3
     },
     "London": {
         "image": "https://images.unsplash.com/photo-1529655682523-44aca611b2d0",
+        "coordinates": (51.5074, -0.1278), "timezone": "Europe/London",
         "activities": {
-            "history": ["Tower of London", "Westminster Abbey"],
-            "food": ["Borough Market", "Afternoon Tea"],
-            "culture": ["British Museum", "Tate Modern"]
+            "history": ["Tower of London", "Westminster Abbey", "Buckingham Palace"],
+            "museums": ["British Museum", "Natural History Museum", "Tate Modern"],
+            "food": ["Borough Market", "Afternoon Tea", "East End Food Tour"],
+            "parks": ["Hyde Park", "Regent's Park", "Kew Gardens"]
         },
-        "country": "UK"
+        "country": "UK", "cost_multiplier": 1.4
+    },
+    "Rome": {
+        "image": "https://images.unsplash.com/photo-1552832230-c0197dd311b5",
+        "coordinates": (41.9028, 12.4964), "timezone": "Europe/Rome",
+        "activities": {
+            "history": ["Colosseum", "Roman Forum", "Pantheon", "Palatine Hill"],
+            "art": ["Vatican Museums", "Sistine Chapel", "Galleria Borghese"],
+            "food": ["Trastevere Food Tour", "Gelato Tasting", "Pasta Making Class"],
+            "religion": ["St. Peter's Basilica", "Trevi Fountain", "Spanish Steps"]
+        },
+        "country": "Italy", "cost_multiplier": 1.2
+    },
+    "Barcelona": {
+        "image": "https://images.unsplash.com/photo-1523531294919-4bcd7c65e216",
+        "coordinates": (41.3851, 2.1734), "timezone": "Europe/Madrid",
+        "activities": {
+            "architecture": ["Sagrada Familia", "Park Güell", "Casa Batlló"],
+            "beaches": ["Barceloneta Beach", "Bogatell Beach", "Nova Icaria"],
+            "food": ["La Boqueria Market", "Tapas Tour", "Paella Cooking Class"],
+            "culture": ["Gothic Quarter", "Picasso Museum", "Flamenco Show"]
+        },
+        "country": "Spain", "cost_multiplier": 1.1
+    },
+    "Amsterdam": {
+        "image": "https://images.unsplash.com/photo-1512470876302-972faa2aa9a4",
+        "coordinates": (52.3676, 4.9041), "timezone": "Europe/Amsterdam",
+        "activities": {
+            "culture": ["Van Gogh Museum", "Anne Frank House", "Rijksmuseum"],
+            "canals": ["Canal Cruise", "Jordaan District Walk", "Houseboat Museum"],
+            "history": ["Rembrandt House", "Jewish Historical Museum"],
+            "unique": ["Heineken Experience", "Albert Cuyp Market"]
+        },
+        "country": "Netherlands", "cost_multiplier": 1.2
+    },
+    "Vienna": {
+        "image": "https://images.unsplash.com/photo-1516550893923-42d28e5677af",
+        "coordinates": (48.2082, 16.3738), "timezone": "Europe/Vienna",
+        "activities": {
+            "music": ["Vienna State Opera", "Mozart House", "Strauss Concert"],
+            "palaces": ["Schönbrunn Palace", "Hofburg Palace", "Belvedere Palace"],
+            "cafes": ["Sachertorte at Hotel Sacher", "Demel Cafe", "Central Cafe"],
+            "museums": ["Kunsthistorisches Museum", "Albertina", "Leopold Museum"]
+        },
+        "country": "Austria", "cost_multiplier": 1.1
+    },
+    "Prague": {
+        "image": "https://images.unsplash.com/photo-1519677100203-a0e668c92439",
+        "coordinates": (50.0755, 14.4378), "timezone": "Europe/Prague",
+        "activities": {
+            "history": ["Prague Castle", "Charles Bridge", "Old Town Square"],
+            "culture": ["Astronomical Clock", "Jewish Quarter", "Kafka Museum"],
+            "food": ["Beer Tasting", "Trdelník Making", "Traditional Czech Dinner"],
+            "views": ["Petrin Tower", "Vltava River Cruise", "Vyšehrad Castle"]
+        },
+        "country": "Czech Republic", "cost_multiplier": 0.9
+    },
+    "Istanbul": {
+        "image": "https://images.unsplash.com/photo-1527838832700-5059252407fa",
+        "coordinates": (41.0082, 28.9784), "timezone": "Europe/Istanbul",
+        "activities": {
+            "history": ["Hagia Sophia", "Blue Mosque", "Topkapi Palace"],
+            "markets": ["Grand Bazaar", "Spice Bazaar", "Arasta Bazaar"],
+            "culture": ["Bosphorus Cruise", "Turkish Bath Experience"],
+            "food": ["Kebab Tasting", "Baklava Workshop", "Turkish Coffee Reading"]
+        },
+        "country": "Turkey", "cost_multiplier": 0.8
+    },
+    "Reykjavik": {
+        "image": "https://images.unsplash.com/photo-1529963183134-61a90db47eaf",
+        "coordinates": (64.1466, -21.9426), "timezone": "Atlantic/Reykjavik",
+        "activities": {
+            "nature": ["Blue Lagoon", "Golden Circle", "Northern Lights Tour"],
+            "adventure": ["Glacier Hiking", "Whale Watching", "Ice Cave Exploration"],
+            "culture": ["Hallgrimskirkja", "Harpa Concert Hall", "National Museum"],
+            "unique": ["Volcano Tour", "Geothermal Bakery", "Puffin Watching"]
+        },
+        "country": "Iceland", "cost_multiplier": 1.5
+    },
+    # Asia (5 destinations)
+    "Tokyo": {
+        "image": "https://images.unsplash.com/photo-1542051841857-5f90071e7989",
+        "coordinates": (35.6762, 139.6503), "timezone": "Asia/Tokyo",
+        "activities": {
+            "culture": ["Senso-ji Temple", "Meiji Shrine", "Imperial Palace"],
+            "food": ["Tsukiji Fish Market", "Ramen Tasting", "Sushi Making Class"],
+            "modern": ["Shibuya Crossing", "TeamLab Planets", "Tokyo Skytree"],
+            "nature": ["Shinjuku Gyoen", "Ueno Park", "Mount Takao Hike"]
+        },
+        "country": "Japan", "cost_multiplier": 1.4
+    },
+    "Bangkok": {
+        "image": "https://images.unsplash.com/photo-1563492065599-3520f775eeed",
+        "coordinates": (13.7563, 100.5018), "timezone": "Asia/Bangkok",
+        "activities": {
+            "temples": ["Grand Palace", "Wat Pho", "Wat Arun"],
+            "markets": ["Chatuchak Weekend Market", "Floating Markets"],
+            "culture": ["Thai Cooking Class", "Muay Thai Match"],
+            "modern": ["Sky Bar", "ICONSIAM Mall", "Mahanakhon Skywalk"]
+        },
+        "country": "Thailand", "cost_multiplier": 0.7
+    },
+    "Singapore": {
+        "image": "https://images.unsplash.com/photo-1565967511849-76a60a516170",
+        "coordinates": (1.3521, 103.8198), "timezone": "Asia/Singapore",
+        "activities": {
+            "modern": ["Marina Bay Sands", "Gardens by the Bay", "Sentosa Island"],
+            "culture": ["Chinatown", "Little India", "Kampong Glam"],
+            "food": ["Hawker Centre Tour", "Chili Crab Dinner"],
+            "nature": ["Singapore Zoo", "Botanic Gardens"]
+        },
+        "country": "Singapore", "cost_multiplier": 1.3
+    },
+    "Bali": {
+        "image": "https://images.unsplash.com/photo-1537996194471-e657df975ab4",
+        "coordinates": (-8.3405, 115.0920), "timezone": "Asia/Makassar",
+        "activities": {
+            "temples": ["Tanah Lot", "Uluwatu Temple", "Besakih Temple"],
+            "nature": ["Tegallalang Rice Terraces", "Mount Batur Sunrise"],
+            "beaches": ["Seminyak", "Nusa Dua", "Padang Padang"],
+            "culture": ["Balinese Dance Show", "Silver Jewelry Making"]
+        },
+        "country": "Indonesia", "cost_multiplier": 0.6
+    },
+    "Hong Kong": {
+        "image": "https://images.unsplash.com/photo-1531259683007-016a7b628fc3",
+        "coordinates": (22.3193, 114.1694), "timezone": "Asia/Hong_Kong",
+        "activities": {
+            "views": ["Victoria Peak", "Star Ferry", "Ngong Ping 360"],
+            "culture": ["Tian Tan Buddha", "Wong Tai Sin Temple"],
+            "food": ["Dim Sum Tour", "Temple Street Night Market"],
+            "shopping": ["Causeway Bay", "Mong Kok Markets"]
+        },
+        "country": "China", "cost_multiplier": 1.2
+    },
+    # North America (2 destinations)
+    "New York": {
+        "image": "https://images.unsplash.com/photo-1499092346589-b9b6be3e94b2",
+        "coordinates": (40.7128, -74.0060), "timezone": "America/New_York",
+        "activities": {
+            "landmarks": ["Statue of Liberty", "Empire State Building", "Times Square"],
+            "museums": ["Metropolitan Museum", "MOMA", "Natural History Museum"],
+            "food": ["Pizza Tour", "Chinatown Food Crawl", "Bagel Tasting"],
+            "culture": ["Broadway Show", "High Line Walk", "5th Avenue Shopping"]
+        },
+        "country": "USA", "cost_multiplier": 1.5
+    },
+    "Cancun": {
+        "image": "https://images.unsplash.com/photo-1519794206461-cccd885bf209",
+        "coordinates": (21.1619, -86.8515), "timezone": "America/Cancun",
+        "activities": {
+            "beaches": ["Playa Delfines", "Isla Mujeres", "Playa Norte"],
+            "ruins": ["Chichen Itza", "Tulum Ruins", "Coba Ruins"],
+            "adventure": ["Xcaret Park", "Xel-Ha Park", "Cenote Diving"],
+            "nightlife": ["Coco Bongo", "Mandala Beach Club"]
+        },
+        "country": "Mexico", "cost_multiplier": 0.9
+    },
+    # Middle East (1 destination)
+    "Dubai": {
+        "image": "https://images.unsplash.com/photo-1518684079-3c830dcef090",
+        "coordinates": (25.2048, 55.2708), "timezone": "Asia/Dubai",
+        "activities": {
+            "modern": ["Burj Khalifa", "Dubai Mall", "Palm Jumeirah"],
+            "culture": ["Dubai Creek", "Gold Souk", "Bastakiya Quarter"],
+            "desert": ["Desert Safari", "Dune Bashing", "Camel Riding"],
+            "luxury": ["Burj Al Arab", "Atlantis Waterpark"]
+        },
+        "country": "UAE", "cost_multiplier": 1.6
+    },
+    # Africa (1 destination)
+    "Cape Town": {
+        "image": "https://images.unsplash.com/photo-1516026672322-bc52d61a60d0",
+        "coordinates": (-33.9249, 18.4241), "timezone": "Africa/Johannesburg",
+        "activities": {
+            "nature": ["Table Mountain", "Cape Point", "Kirstenbosch Gardens"],
+            "wine": ["Stellenbosch Wine Tour", "Franschhoek Wine Tram"],
+            "history": ["Robben Island", "District Six Museum"],
+            "adventure": ["Lion's Head Hike", "Shark Cage Diving"]
+        },
+        "country": "South Africa", "cost_multiplier": 0.8
+    },
+    # Oceania (1 destination)
+    "Sydney": {
+        "image": "https://images.unsplash.com/photo-1506973035872-a4ec16b8e8d9",
+        "coordinates": (-33.8688, 151.2093), "timezone": "Australia/Sydney",
+        "activities": {
+            "landmarks": ["Sydney Opera House", "Harbour Bridge", "Bondi Beach"],
+            "nature": ["Blue Mountains", "Taronga Zoo", "Royal Botanic Garden"],
+            "food": ["Sydney Fish Market", "Chinatown Food Tour"],
+            "culture": ["Art Gallery of NSW", "Darling Harbour"]
+        },
+        "country": "Australia", "cost_multiplier": 1.3
+    },
+    # South America (2 destinations)
+    "Rio de Janeiro": {
+        "image": "https://images.unsplash.com/photo-1483729558449-99ef09a8c325",
+        "coordinates": (-22.9068, -43.1729), "timezone": "America/Sao_Paulo",
+        "activities": {
+            "landmarks": ["Christ the Redeemer", "Sugarloaf Mountain"],
+            "beaches": ["Copacabana", "Ipanema", "Leblon"],
+            "nature": ["Tijuca Forest", "Botanical Garden"],
+            "culture": ["Samba Show", "Favela Tour"]
+        },
+        "country": "Brazil", "cost_multiplier": 0.9
+    },
+    "Cairo": {
+        "image": "https://images.unsplash.com/photo-1572252009286-268acec5ca0a",
+        "coordinates": (30.0444, 31.2357), "timezone": "Africa/Cairo",
+        "activities": {
+            "pyramids": ["Giza Pyramids", "Sphinx", "Saqqara Pyramid"],
+            "museums": ["Egyptian Museum", "Coptic Museum"],
+            "culture": ["Khan el-Khalili Bazaar", "Nile Dinner Cruise"],
+            "history": ["Dahshur Pyramids", "Memphis Ruins"]
+        },
+        "country": "Egypt", "cost_multiplier": 0.7
     }
 }
 
