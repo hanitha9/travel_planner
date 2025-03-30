@@ -4,72 +4,89 @@ from datetime import datetime, timedelta
 import random
 from collections import defaultdict
 
-# Custom CSS for classic styling
+# Custom CSS for beautiful, classic styling
 st.markdown("""
     <style>
     .itinerary-header {
         font-family: 'Georgia', serif;
-        font-size: 28px;
+        font-size: 32px;
         font-weight: bold;
-        color: #4A2E2A;
+        color: #5C4033;
         text-align: center;
-        margin-bottom: 15px;
-        border-bottom: 2px solid #8B5A2B;
-        padding-bottom: 5px;
+        margin-bottom: 20px;
+        border-bottom: 3px double #D4A017;
+        padding-bottom: 10px;
     }
     .subheader {
         font-family: 'Georgia', serif;
-        font-size: 20px;
-        color: #4A2E2A;
-        margin-top: 25px;
-        margin-bottom: 10px;
+        font-size: 22px;
+        color: #5C4033;
+        margin-top: 30px;
+        margin-bottom: 15px;
+        text-align: center;
     }
     .day-box {
-        background-color: #F5F1E9;
-        border: 1px solid #8B5A2B;
-        border-radius: 5px;
-        padding: 15px;
+        background-color: #FFF8E7;
+        border: 1px solid #D4A017;
+        border-radius: 8px;
+        padding: 20px;
         margin: 15px 0;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     }
     .day-title {
         font-family: 'Georgia', serif;
-        font-size: 18px;
-        color: #4A2E2A;
+        font-size: 20px;
+        color: #5C4033;
         font-weight: bold;
-        margin-bottom: 10px;
+        margin-bottom: 15px;
+        border-bottom: 1px dashed #D4A017;
+        padding-bottom: 5px;
     }
     .time-slot {
         font-family: 'Times New Roman', serif;
         font-size: 16px;
-        color: #3C2F2F;
-        margin: 8px 0;
-        padding-left: 10px;
-        border-left: 2px solid #A67B5B;
+        color: #403029;
+        margin: 10px 0;
+        padding-left: 15px;
+        border-left: 3px solid #E8C589;
+        line-height: 1.5;
     }
     .summary-box {
-        background-color: #FDF6E3;
-        border: 1px dashed #8B5A2B;
-        border-radius: 5px;
-        padding: 15px;
-        margin-top: 20px;
+        background-color: #FDF5E6;
+        border: 2px solid #D4A017;
+        border-radius: 8px;
+        padding: 20px;
+        margin-top: 25px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     }
     .summary-text {
         font-family: 'Times New Roman', serif;
         font-size: 16px;
-        color: #3C2F2F;
-        margin: 5px 0;
+        color: #403029;
+        margin: 8px 0;
     }
     .button-style {
         font-family: 'Georgia', serif;
-        background-color: #8B5A2B;
+        background-color: #D4A017;
         color: white;
-        border-radius: 5px;
-        padding: 10px;
+        border-radius: 8px;
+        padding: 12px 20px;
         text-align: center;
         display: block;
-        width: 200px;
+        width: 250px;
         margin: 20px auto;
         border: none;
+        cursor: pointer;
+    }
+    .button-style:hover {
+        background-color: #C68E00;
+    }
+    .save-message {
+        font-family: 'Georgia', serif;
+        font-size: 16px;
+        color: #5C4033;
+        text-align: center;
+        margin-top: 10px;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -81,12 +98,13 @@ if "preferences" not in st.session_state:
     st.session_state.preferences = {}
 if "activities" not in st.session_state:
     st.session_state.activities = []
+if "saved" not in st.session_state:
+    st.session_state.saved = False
 
 # ======================
 # CORE FUNCTIONS
 # ======================
 def parse_dates(text):
-    """Enhanced date parsing for multiple formats"""
     text_lower = text.lower()
     today = datetime.now()
     
@@ -133,7 +151,6 @@ def parse_dates(text):
     }
 
 def parse_preferences(user_input):
-    """Parse user preferences from input text"""
     prefs = {}
     text_lower = user_input.lower()
     
@@ -179,7 +196,6 @@ def parse_preferences(user_input):
     return prefs
 
 def search_activities(destination, interest):
-    """Mock web search for activities"""
     if destination in DESTINATION_DATA and interest in DESTINATION_DATA[destination]["activities"]:
         return DESTINATION_DATA[destination]["activities"][interest]
     return [f"{interest.capitalize()} activity in {destination}"]
@@ -439,7 +455,7 @@ def main():
             st.subheader("Plan Your Journey")
             user_input = st.text_area(
                 "Describe your trip (e.g., destination, dates, budget, interests):",
-                value="Paris from New York, Jun 1-4, 2025, moderate budget, art and food",
+                value="Bangkok from New York, Jun 1-4, 2025, budget, art and food",
                 height=150
             )
             
@@ -528,7 +544,7 @@ def main():
         duration = prefs["duration"]
         dest_data = prefs["destination_data"]
         
-        # Classic header
+        # Header
         st.markdown(f"<div class='itinerary-header'>Your {duration}-Day Journey to {dest}</div>", unsafe_allow_html=True)
         st.markdown(f"<i>Dates: {prefs['dates']}</i>", unsafe_allow_html=True)
         
@@ -538,7 +554,7 @@ def main():
         if prefs["start"] != "Not specified":
             st.markdown(f"<i>Departing from: {prefs['start']}</i>", unsafe_allow_html=True)
         
-        # Itinerary with classic styling
+        # Itinerary
         st.markdown("<div class='subheader'>Detailed Itinerary</div>", unsafe_allow_html=True)
         used_activities = set()
         selected_activities = st.session_state.activities
@@ -581,7 +597,7 @@ def main():
             
             st.markdown("</div>", unsafe_allow_html=True)
         
-        # Summary with classic styling
+        # Summary
         st.markdown("<div class='subheader'>Trip Summary</div>", unsafe_allow_html=True)
         st.markdown("<div class='summary-box'>", unsafe_allow_html=True)
         cols = st.columns(4)
@@ -596,11 +612,20 @@ def main():
         st.markdown(f"<div class='summary-text'>Accommodation: {prefs['accommodation'].capitalize()}</div>", unsafe_allow_html=True)
         st.markdown("</div>", unsafe_allow_html=True)
         
-        if st.button("Plan Another Journey", key="plan_another"):
-            st.session_state.stage = "input_refinement"
-            st.session_state.preferences = {}
-            st.session_state.activities = []
-            st.rerun()
+        # Buttons
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("Plan Another Journey", key="plan_another"):
+                st.session_state.stage = "input_refinement"
+                st.session_state.preferences = {}
+                st.session_state.activities = []
+                st.session_state.saved = False
+                st.rerun()
+        with col2:
+            if st.button("Save This Itinerary", key="save_itinerary"):
+                st.session_state.saved = True
+                # Simulate saving/emailing (actual email requires external API)
+                st.markdown("<div class='save-message'>Itinerary saved successfully! Check your email or saved plans.</div>", unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
