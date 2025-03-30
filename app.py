@@ -4,6 +4,14 @@ from datetime import datetime, timedelta
 import random
 from collections import defaultdict
 
+# Initialize session state
+if "stage" not in st.session_state:
+    st.session_state.stage = "input_refinement"
+if "preferences" not in st.session_state:
+    st.session_state.preferences = {}
+if "activities" not in st.session_state:
+    st.session_state.activities = []
+
 # ======================
 # CORE FUNCTIONS
 # ======================
@@ -392,14 +400,6 @@ DESTINATION_DATA = {
 # MAIN APP
 # ======================
 def main():
-    # Initialize session state
-    if "stage" not in st.session_state:
-        st.session_state.stage = "input_refinement"
-    if "preferences" not in st.session_state:
-        st.session_state.preferences = {}
-    if "activities" not in st.session_state:
-        st.session_state.activities = []
-    
     st.title("🌍 AI-Powered Travel Planner")
     
     # Stage 1: Input Collection
@@ -408,7 +408,7 @@ def main():
             st.subheader("Plan Your Dream Trip")
             user_input = st.text_area(
                 "Describe your trip (destination, dates, interests, budget):",
-                placeholder="e.g., 'Romantic Paris getaway from June 10-15, love art and fine dining with luxury budget'",
+                value="Paris from New York, June 1–7, 2025, moderate budget, art and food",
                 height=150
             )
             
@@ -423,18 +423,10 @@ def main():
     # Stage 2: Preference Refinement
     elif st.session_state.stage == "refine_preferences":
         prefs = st.session_state.preferences
+        
         st.subheader("Refine Your Preferences")
         
-        # Display what we understood
-        st.write("Here's what we understood from your input:")
-        cols = st.columns(3)
-        cols[0].metric("Destination", prefs.get("destination", "Not specified"))
-        cols[1].metric("Dates", prefs.get("dates", "Not specified"))
-        cols[2].metric("Duration", f"{prefs.get('duration', '?')} days")
-        
         with st.form("preference_refinement"):
-            st.markdown("### Adjust your preferences:")
-            
             # Destination
             current_dest = prefs.get("destination", "")
             dest_options = sorted(list(DESTINATION_DATA.keys()))
@@ -468,10 +460,6 @@ def main():
                     "Custom duration": "custom"
                 }
                 current_duration = prefs.get("duration", 7)
-                default_duration = next(
-                    (k for k,v in duration_options.items() if v == current_duration),
-                    "One week (7 days)"
-                )
                 new_duration = st.selectbox(
                     "Trip Duration:",
                     list(duration_options.keys()),
@@ -524,7 +512,7 @@ def main():
                 }
                 st.session_state.stage = "itinerary_display"
                 st.rerun()
-    
+
     # Stage 3: Itinerary Display
     elif st.session_state.stage == "itinerary_display":
         prefs = st.session_state.preferences
@@ -537,7 +525,7 @@ def main():
         
         # Display destination info
         if dest_data and "image" in dest_data:
-            st.image(dest_data["image"], use_column_width=True)
+            st.image(dest_data["image"], use_container_width=True)
         st.markdown(f"**{dest}, {dest_data.get('country', '') if dest_data else ''}**")
         
         if prefs.get("start", "Not specified") != "Not specified":
@@ -547,29 +535,58 @@ def main():
         st.markdown("---")
         st.subheader("Your Complete Itinerary")
         
+        # Track used activities to avoid repetition
+        used_activities = defaultdict(list)
+        
         for day in range(1, duration + 1):
             current_date = (prefs["start_date"] + timedelta(days=day-1)).strftime("%A, %b %d")
             st.markdown(f"#### Day {day}: {current_date}")
             
-            # Morning activity
-            if "art" in prefs["interests"] and day % 2 == 1 and dest_data:
-                activity = random.choice(dest_data["activities"].get("art", ["Art Gallery Visit"]))
-                st.markdown(f"- **Morning (9AM-12PM):** {activity}")
+            # Get available activities for interests
+            available_activities = []
+            for interest in prefs["interests"]:
+                if dest_data and interest in dest_data["activities"]:
+                    available_activities.extend([
+                        act for act in dest_data["activities"][interest] 
+                        if act not in used_activities[interest]
+                    ])
+            
+            # Morning activity (only on odd days for art)
+            if "art" in prefs["interests"] and day % 2 == 1 and available_activities:
+                art_activities = [
+                    act for act in available_activities 
+                    if act in dest_data["activities"].get("art", [])
+                ]
+                if art_activities:
+                    activity = random.choice(art_activities)
+                    st.markdown(f"- **Morning (9AM-12PM):** {activity}")
+                    used_activities["art"].append(activity)
             
             # Lunch
-            if "food" in prefs["interests"]:
-                st.markdown(f"- **Lunch (12PM-1PM):** {random.choice(['Local cafe', 'Recommended restaurant'])}")
+            lunch_options = ["Local cafe", "Recommended restaurant", "Traditional eatery"]
+            st.markdown(f"- **Lunch (12PM-1PM):** {random.choice(lunch_options)}")
             
-            # Afternoon activity
-            if "food" in prefs["interests"] and day % 2 == 0 and dest_data:
-                activity = random.choice(dest_data["activities"].get("food", ["Local Restaurant"]))
-                st.markdown(f"- **Afternoon (2PM-5PM):** {activity}")
+            # Afternoon activity (only on even days for food)
+            if "food" in prefs["interests"] and day % 2 == 0 and available_activities:
+                food_activities = [
+                    act for act in available_activities 
+                    if act in dest_data["activities"].get("food", [])
+                ]
+                if food_activities:
+                    activity = random.choice(food_activities)
+                    st.markdown(f"- **Afternoon (2PM-5PM):** {activity}")
+                    used_activities["food"].append(activity)
             
-            # Evening
-            if day > 1:  # Skip first evening
-                if "culture" in prefs["interests"] and dest_data:
-                    activity = random.choice(dest_data["activities"].get("culture", ["Cultural Show"]))
+            # Evening activity (skip first day)
+            if day > 1 and "culture" in prefs["interests"] and available_activities:
+                culture_activities = [
+                    act for act in available_activities 
+                    if act in dest_data["activities"].get("culture", [])
+                ]
+                if culture_activities:
+                    activity = random.choice(culture_activities)
                     st.markdown(f"- **Evening (7PM-10PM):** {activity}")
+                    used_activities["culture"].append(activity)
             
             st.markdown("---")
         
