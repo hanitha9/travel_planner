@@ -104,7 +104,7 @@ git push origin main
 - **System Prompt:** "You are a travel planner AI. Create a detailed n-day itinerary for the user based on: Destination, Dates, Duration, Interests, Selected Activities, Budget, Dietary, Mobility, Accommodation preferences."
 
 ## Live Application
-**Deployed URL:** [`https://travelplanner-7axnmyx9s9nrnpy9xaexsy.streamlit.app/`]
+**Deployed URL:** https://travelplanner-7axnmyx9s9nrnpy9xaexsy.streamlit.app/
 
 ## Technologies Used
 - **Python:** Core programming language (v3.8+).
