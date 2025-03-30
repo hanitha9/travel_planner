@@ -4,6 +4,53 @@ from datetime import datetime, timedelta
 import random
 from collections import defaultdict
 
+# Custom CSS for styling
+st.markdown("""
+    <style>
+    .itinerary-header {
+        font-size: 28px;
+        font-weight: bold;
+        color: #2E8B57;
+        text-align: center;
+        margin-bottom: 10px;
+    }
+    .subheader {
+        font-size: 20px;
+        color: #4682B4;
+        margin-top: 20px;
+    }
+    .day-box {
+        background-color: #F0F8FF;
+        border-radius: 10px;
+        padding: 15px;
+        margin: 10px 0;
+        box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
+    }
+    .time-slot {
+        font-size: 16px;
+        margin: 5px 0;
+        padding-left: 10px;
+        border-left: 4px solid #FFD700;
+    }
+    .summary-box {
+        background-color: #FFF8DC;
+        border-radius: 10px;
+        padding: 15px;
+        margin-top: 20px;
+    }
+    .button-style {
+        background-color: #FF6347;
+        color: white;
+        border-radius: 5px;
+        padding: 10px;
+        text-align: center;
+        display: block;
+        width: 200px;
+        margin: 20px auto;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
 # Initialize session state
 if "stage" not in st.session_state:
     st.session_state.stage = "input_refinement"
@@ -399,71 +446,27 @@ def main():
         st.subheader("Refine Your Preferences")
         
         with st.form("preference_refinement"):
-            # Destination
-            dest_options = sorted(list(DESTINATION_DATA.keys()))
-            current_dest = prefs.get("destination", "Paris")
-            new_dest = st.selectbox(
-                "Destination:",
-                dest_options,
-                index=dest_options.index(current_dest) if current_dest in dest_options else 0
-            )
+            new_dest = st.selectbox("Destination:", sorted(list(DESTINATION_DATA.keys())), 
+                                   index=sorted(list(DESTINATION_DATA.keys())).index(prefs.get("destination", "Paris")))
+            new_start = st.text_input("Traveling from:", value=prefs.get("start", "Not specified"))
             
-            # Origin
-            new_start = st.text_input(
-                "Traveling from:",
-                value=prefs.get("start", "Not specified")
-            )
-            
-            # Calendar-style Dates
             col1, col2 = st.columns(2)
             with col1:
-                start_date = st.date_input(
-                    "Start Date:",
-                    value=prefs.get("start_date", datetime.now()),
-                    min_value=datetime.now()
-                )
+                start_date = st.date_input("Start Date:", value=prefs.get("start_date", datetime.now()), min_value=datetime.now())
             with col2:
-                end_date = st.date_input(
-                    "End Date:",
-                    value=prefs.get("end_date", datetime.now() + timedelta(days=6)),
-                    min_value=start_date
-                )
+                end_date = st.date_input("End Date:", value=prefs.get("end_date", datetime.now() + timedelta(days=6)), min_value=start_date)
             new_duration = (end_date - start_date).days + 1
             new_dates = f"{start_date.strftime('%b %d, %Y')} - {end_date.strftime('%b %d, %Y')}"
             
-            # Budget
-            budget_options = ["Luxury", "Moderate", "Budget"]
-            current_budget = prefs.get("budget", "moderate").capitalize()
-            new_budget = st.selectbox(
-                "Budget Level:",
-                budget_options,
-                index=budget_options.index(current_budget)
-            )
-            
-            # Interests
-            interest_options = sorted(["Adventure", "Art", "Beach", "Culture", "Food", "History", "Nature", "Shopping"])
-            current_interests = [i.capitalize() for i in prefs.get("interests", ["culture"])]
-            new_interests = st.multiselect(
-                "Your Interests:",
-                interest_options,
-                default=current_interests
-            )
-            
-            # Additional Preferences
-            new_dietary = st.selectbox(
-                "Dietary Preference:",
-                ["None", "Vegetarian", "Vegan"],
-                index=["None", "Vegetarian", "Vegan"].index(prefs.get("dietary", "none").capitalize())
-            )
-            new_mobility = st.slider(
-                "Walking Tolerance (miles/day):",
-                1, 10, prefs.get("mobility", 5)
-            )
-            new_accommodation = st.selectbox(
-                "Accommodation Preference:",
-                ["Budget", "Mid-range", "Luxury"],
-                index=["Budget", "Mid-range", "Luxury"].index(prefs.get("accommodation", "mid-range").capitalize())
-            )
+            new_budget = st.selectbox("Budget Level:", ["Luxury", "Moderate", "Budget"], 
+                                     index=["Luxury", "Moderate", "Budget"].index(prefs.get("budget", "moderate").capitalize()))
+            new_interests = st.multiselect("Your Interests:", sorted(["Adventure", "Art", "Beach", "Culture", "Food", "History", "Nature", "Shopping"]), 
+                                          default=[i.capitalize() for i in prefs.get("interests", ["culture"])])
+            new_dietary = st.selectbox("Dietary Preference:", ["None", "Vegetarian", "Vegan"], 
+                                      index=["None", "Vegetarian", "Vegan"].index(prefs.get("dietary", "none").capitalize()))
+            new_mobility = st.slider("Walking Tolerance (miles/day):", 1, 10, prefs.get("mobility", 5))
+            new_accommodation = st.selectbox("Accommodation Preference:", ["Budget", "Mid-range", "Luxury"], 
+                                            index=["Budget", "Mid-range", "Luxury"].index(prefs.get("accommodation", "mid-range").capitalize()))
             
             if st.form_submit_button("Confirm Preferences"):
                 if not new_interests:
@@ -493,18 +496,14 @@ def main():
         prefs = st.session_state.preferences
         st.subheader(f"Activity Suggestions for {prefs['destination']}")
         
-        # Generate suggestions
         suggestions = []
         for interest in prefs["interests"]:
             activities = search_activities(prefs["destination"], interest)
-            suggestions.extend(activities[:3])  # Limit to 3 per interest
+            suggestions.extend(activities[:3])
         
         with st.form("activity_selection"):
-            selected_activities = st.multiselect(
-                "Choose activities you like:",
-                suggestions,
-                default=suggestions[:min(3 * len(prefs["interests"]), len(suggestions))]
-            )
+            selected_activities = st.multiselect("Choose activities you like:", suggestions, 
+                                                default=suggestions[:min(3 * len(prefs["interests"]), len(suggestions))])
             if st.form_submit_button("Generate Itinerary"):
                 if not selected_activities:
                     st.error("Please select at least one activity.")
@@ -513,83 +512,88 @@ def main():
                     st.session_state.stage = "itinerary_display"
                     st.rerun()
 
-    # Stage 4: Itinerary Display
+    # Stage 4: Itinerary Display (Enhanced Styling)
     elif st.session_state.stage == "itinerary_display":
         prefs = st.session_state.preferences
         dest = prefs["destination"]
         duration = prefs["duration"]
         dest_data = prefs["destination_data"]
         
-        st.header(f"✈️ Your {duration}-Day Trip to {dest}")
-        st.subheader(f"📅 {prefs['dates']}")
+        # Header with emoji and custom styling
+        st.markdown(f"<div class='itinerary-header'>✈️ Your {duration}-Day Trip to {dest}</div>", unsafe_allow_html=True)
+        st.markdown(f"📅 <b>{prefs['dates']}</b>", unsafe_allow_html=True)
         
-        # Display destination info
+        # Destination info with image
         if dest_data and "image" in dest_data:
-            st.image(dest_data["image"], use_container_width=True)
-        st.markdown(f"**{dest}, {dest_data.get('country', '')}**")
+            st.image(dest_data["image"], use_container_width=True, caption=f"{dest}, {dest_data.get('country', '')}")
+        st.markdown(f"<b>{dest}, {dest_data.get('country', '')}</b>", unsafe_allow_html=True)
         if prefs["start"] != "Not specified":
-            st.markdown(f"*Traveling from: {prefs['start']}*")
+            st.markdown(f"🛫 <i>Traveling from: {prefs['start']}</i>", unsafe_allow_html=True)
         
-        # Full itinerary
-        st.markdown("---")
-        st.subheader("Your Complete Itinerary")
+        # Full itinerary with styled boxes
+        st.markdown("<div class='subheader'>Your Complete Itinerary</div>", unsafe_allow_html=True)
         used_activities = set()
         selected_activities = st.session_state.activities
         fallback_options = ["Free time", "Explore local markets", "Relax at a park"]
         
         for day in range(1, duration + 1):
             current_date = (prefs["start_date"] + timedelta(days=day-1)).strftime("%A, %b %d")
-            st.markdown(f"#### Day {day}: {current_date}")
+            st.markdown(f"""
+                <div class='day-box'>
+                    <h4>Day {day}: {current_date}</h4>
+            """, unsafe_allow_html=True)
             
             # Morning
             if selected_activities and day <= len(selected_activities):
                 activity = selected_activities[day-1]
-                st.markdown(f"- **Morning (9AM-12PM):** {activity}")
+                st.markdown(f"<div class='time-slot'>🌞 <b>Morning (9AM-12PM):</b> {activity}</div>", unsafe_allow_html=True)
                 used_activities.add(activity)
             else:
-                st.markdown(f"- **Morning (9AM-12PM):** {random.choice(fallback_options)}")
+                st.markdown(f"<div class='time-slot'>🌞 <b>Morning (9AM-12PM):</b> {random.choice(fallback_options)}</div>", unsafe_allow_html=True)
             
-            # Lunch with dietary consideration
+            # Lunch
             lunch_base = random.choice(["Local cafe", "Recommended restaurant", "Street food"])
             dietary_note = f" ({prefs['dietary']} options)" if prefs['dietary'] != "none" else ""
-            st.markdown(f"- **Lunch (12PM-1PM):** {lunch_base}{dietary_note}")
+            st.markdown(f"<div class='time-slot'>🍽️ <b>Lunch (12PM-1PM):</b> {lunch_base}{dietary_note}</div>", unsafe_allow_html=True)
             
             # Afternoon
             available_activities = [a for a in selected_activities if a not in used_activities]
             if available_activities:
                 activity = random.choice(available_activities)
-                st.markdown(f"- **Afternoon (2PM-5PM):** {activity}")
+                st.markdown(f"<div class='time-slot'>🌅 <b>Afternoon (2PM-5PM):</b> {activity}</div>", unsafe_allow_html=True)
                 used_activities.add(activity)
             else:
-                st.markdown(f"- **Afternoon (2PM-5PM):** {random.choice(fallback_options)}")
+                st.markdown(f"<div class='time-slot'>🌅 <b>Afternoon (2PM-5PM):</b> {random.choice(fallback_options)}</div>", unsafe_allow_html=True)
             
             # Evening (skip first day)
             if day > 1:
                 available_activities = [a for a in selected_activities if a not in used_activities]
                 if available_activities:
                     activity = random.choice(available_activities)
-                    st.markdown(f"- **Evening (7PM-10PM):** {activity}")
+                    st.markdown(f"<div class='time-slot'>🌙 <b>Evening (7PM-10PM):</b> {activity}</div>", unsafe_allow_html=True)
                     used_activities.add(activity)
                 else:
-                    st.markdown(f"- **Evening (7PM-10PM):** {random.choice(fallback_options)}")
+                    st.markdown(f"<div class='time-slot'>🌙 <b>Evening (7PM-10PM):</b> {random.choice(fallback_options)}</div>", unsafe_allow_html=True)
             
-            st.markdown("---")
+            st.markdown("</div>", unsafe_allow_html=True)
         
-        # Trip Summary
-        st.markdown("---")
-        st.subheader("Trip Summary")
+        # Trip Summary with styled box
+        st.markdown("<div class='subheader'>Trip Summary</div>", unsafe_allow_html=True)
+        st.markdown("<div class='summary-box'>", unsafe_allow_html=True)
         cols = st.columns(4)
         cols[0].metric("Destination", dest)
         cols[1].metric("Duration", f"{duration} days")
         cols[2].metric("Budget", prefs["budget"].capitalize())
         cols[3].metric("Walking", f"{prefs['mobility']} miles/day")
         
-        st.markdown(f"**Travel Dates:** {prefs['dates']}")
-        st.markdown(f"**Interests:** {', '.join([i.capitalize() for i in prefs['interests']])}")
-        st.markdown(f"**Dietary:** {prefs['dietary'].capitalize()}")
-        st.markdown(f"**Accommodation:** {prefs['accommodation'].capitalize()}")
+        st.markdown(f"📅 <b>Travel Dates:</b> {prefs['dates']}", unsafe_allow_html=True)
+        st.markdown(f"🎯 <b>Interests:</b> {', '.join([i.capitalize() for i in prefs['interests']])}", unsafe_allow_html=True)
+        st.markdown(f"🍴 <b>Dietary:</b> {prefs['dietary'].capitalize()}", unsafe_allow_html=True)
+        st.markdown(f"🏨 <b>Accommodation:</b> {prefs['accommodation'].capitalize()}", unsafe_allow_html=True)
+        st.markdown("</div>", unsafe_allow_html=True)
         
-        if st.button("Plan Another Trip"):
+        # Styled button
+        if st.button("Plan Another Trip", key="plan_another"):
             st.session_state.stage = "input_refinement"
             st.session_state.preferences = {}
             st.session_state.activities = []
