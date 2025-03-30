@@ -1,5 +1,6 @@
 import streamlit as st
 import re
+from fuzzywuzzy import process
 
 # Custom CSS for updated aesthetics
 st.markdown("""
@@ -85,7 +86,7 @@ st.markdown("""
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 """, unsafe_allow_html=True)
 
-# Travel data structure (updated with art activities for Tokyo)
+# Travel data structure (subset for demonstration)
 travel_data = {
     "Europe": {
         "France": {
@@ -135,17 +136,13 @@ travel_data = {
         "Japan": {
             "Tokyo": {
                 "activities": {
-                    "art": [  # Added art category with famous museums
-                        {"name": "Tokyo National Museum", "description": "Famous museum with Japanese art and artifacts", "cost": "¥1000", "walking": "2 miles"},
-                        {"name": "Mori Art Museum", "description": "Famous contemporary art museum in Roppongi", "cost": "¥1800", "walking": "2 miles"}
+                    "culture": [
+                        {"name": "Senso-ji Temple", "description": "Historic Buddhist temple", "cost": "Free", "walking": "2 miles"},
+                        {"name": "Meiji Shrine", "description": "Serene Shinto shrine", "cost": "Free", "walking": "3 miles"}
                     ],
                     "food": [
                         {"name": "Tsukiji Market", "description": "Fresh sushi and street food", "cost": "¥1000–2000", "walking": "2 miles"},
                         {"name": "Dotonbori Food Tour", "description": "Street food like takoyaki", "cost": "¥1500–2500", "walking": "3 miles"}
-                    ],
-                    "culture": [
-                        {"name": "Senso-ji Temple", "description": "Historic Buddhist temple", "cost": "Free", "walking": "2 miles"},
-                        {"name": "Meiji Shrine", "description": "Serene Shinto shrine", "cost": "Free", "walking": "3 miles"}
                     ],
                     "nature": [
                         {"name": "Shinjuku Gyoen National Garden", "description": "Beautiful gardens and greenery", "cost": "¥500", "walking": "3 miles"}
@@ -243,7 +240,7 @@ if st.session_state.scroll_to:
 if st.session_state.stage == "input_refinement":
     st.markdown('<div class="section-header" id="step1">Step 1: Tell Us About Your Trip</div>', unsafe_allow_html=True)
     with st.form(key="initial_input_form"):
-        user_input = st.text_area("Share your trip details (e.g., destination, dates, budget, interests):", height=100, value="Tokyo from Japan, June 1–7, 2025, moderate budget, art and food.")
+        user_input = st.text_area("Share your trip details (e.g., destination, dates, budget, interests):", height=100)
         submit_button = st.form_submit_button(label="Submit Preferences", help="Let’s get started!")
     
     if submit_button and user_input:
@@ -333,7 +330,7 @@ elif st.session_state.stage == "refine_preferences":
     st.markdown('<div class="question">4. How much walking are you comfortable with daily (in miles)?</div>', unsafe_allow_html=True)
     
     with st.form(key="refined_input_form"):
-        refined_input = st.text_area("Tell me more about your preferences:", height=150, value="Famous museums, no dietary restrictions, budget-friendly central hotel, 5–7 miles/day.")
+        refined_input = st.text_area("Tell me more about your preferences:", height=150, placeholder="e.g., I prefer famous museums, no dietary restrictions, budget-friendly central hotel, and about 5 miles walking daily.")
         confirm_button = st.form_submit_button(label="Confirm Details")
     
     if confirm_button and refined_input:
@@ -393,19 +390,17 @@ elif st.session_state.stage == "activity_suggestions":
         for interest in interests:
             if interest in city_activities:
                 for activity in city_activities[interest]:
-                    # Apply specific interests filter only to relevant interest (e.g., "art" for "famous museums")
-                    if interest == "art" and specific_interests:
-                        if specific_interests not in activity["description"].lower():
-                            continue
-                    # Filter by walking distance
-                    activity_walking = int(activity["walking"].split()[0])
-                    if activity_walking <= mobility:
-                        # Filter by dietary preferences
-                        if dietary == "vegetarian" and "food" in interest:
-                            if "vegetarian" in activity["description"].lower():
+                    # Filter by specific interests (e.g., famous museums)
+                    if specific_interests in activity["description"].lower() or not specific_interests:
+                        # Filter by walking distance
+                        activity_walking = int(activity["walking"].split()[0])
+                        if activity_walking <= mobility:
+                            # Filter by dietary preferences
+                            if dietary == "vegetarian" and "food" in interest:
+                                if "vegetarian" in activity["description"].lower():
+                                    activities.append(activity)
+                            else:
                                 activities.append(activity)
-                        else:
-                            activities.append(activity)
     except KeyError:
         st.error("Sorry, we don’t have activities for this destination yet. Please try another city.")
         activities = []
