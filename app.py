@@ -42,6 +42,12 @@ st.markdown("""
         border-radius: 5px;
         margin-bottom: 10px;
     }
+    .question {
+        font-size: 16px;
+        font-weight: bold;
+        color: #333333;
+        margin-bottom: 5px;
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -56,7 +62,7 @@ if "activities" not in st.session_state:
 # UI Header with Image
 st.markdown('<div class="title">AI-Powered Travel Planner</div>', unsafe_allow_html=True)
 st.markdown('<div class="subtitle">Let’s craft your dream trip with a personalized itinerary!</div>', unsafe_allow_html=True)
-st.image("https://images.unsplash.com/photo-1502602898657-3e91760cbb34?q=80&w=2073&auto=format&fit=crop", caption="Explore Your Next Adventure", use_column_width=True)
+st.image("https://images.unsplash.com/photo-1502602898657-3e91760cbb34?q=80&w=2073&auto=format&fit=crop", caption="Explore Your Next Adventure", use_container_width=True)
 
 # Debug: Show current stage and preferences
 with st.expander("Debug Info", expanded=False):
@@ -129,11 +135,16 @@ elif st.session_state.stage == "refine_preferences":
     - **Budget:** {prefs.get('budget', 'Moderate')}
     - **Preferences:** {interests_str}
     """)
-    st.image("https://images.unsplash.com/photo-1499856871958-5b9627545d1a?q=80&w=2020&auto=format&fit=crop", caption="Paris Awaits!", use_column_width=True)
+    st.image("https://images.unsplash.com/photo-1499856871958-5b9627545d1a?q=80&w=2020&auto=format&fit=crop", caption="Paris Awaits!", use_container_width=True)
     
-    st.write("A few quick questions:")
+    st.markdown("**A few quick questions to tailor your trip:**", unsafe_allow_html=True)
+    st.markdown(f'<div class="question">1. For interests like {interests_str}, any specifics (e.g., famous museums vs. hidden galleries for art)?</div>', unsafe_allow_html=True)
+    st.markdown('<div class="question">2. Any dietary preferences (e.g., vegetarian)?</div>', unsafe_allow_html=True)
+    st.markdown('<div class="question">3. Accommodation preference (e.g., budget-friendly, central)?</div>', unsafe_allow_html=True)
+    st.markdown('<div class="question">4. How much walking are you comfortable with daily (in miles)?</div>', unsafe_allow_html=True)
+    
     with st.form(key="refined_input_form"):
-        refined_input = st.text_area("1. For interests like {interests_str}, any specifics (e.g., famous museums vs. hidden galleries for art)?\n2. Any dietary preferences (e.g., vegetarian)?\n3. Accommodation preference (e.g., budget-friendly, central)?\n4. How much walking are you comfortable with daily?", height=150)
+        refined_input = st.text_area("Answer the questions above (one per line):", height=150, placeholder="e.g.,\nfamous museums\nnone\nbudget-friendly, central\n5")
         confirm_button = st.form_submit_button(label="Confirm Details")
     
     if confirm_button and refined_input:
@@ -166,10 +177,10 @@ elif st.session_state.stage == "activity_suggestions":
     st.markdown('<div class="suggestion-box">2. Musée d’Orsay - Impressionist masterpieces (~€14).</div>', unsafe_allow_html=True)
     st.markdown('<div class="suggestion-box">3. Montmartre Art Walk - Historic artist district (~5 miles).</div>', unsafe_allow_html=True)
     st.markdown('<div class="suggestion-box">4. Le Marais Food Stroll - Casual falafel and pastries (~€6–10).</div>', unsafe_allow_html=True)
-    st.markdown('<div class="suggestion-box">5. Musée de l’Orangerie - Monet’s Water Lilies (~€12).</div>', unsafe_allow_html=True)
+    st.markdown('<div class="suggestion-box">5. Musée de l’Orsay - Impressionist masterpieces (~€14).</div>', unsafe_allow_html=True)
     st.markdown('<div class="suggestion-box">6. Canal Saint-Martin Picnic - Local bites by the canal (~€10).</div>', unsafe_allow_html=True)
     st.markdown('<div class="suggestion-box">7. Street Art in Belleville - Offbeat murals (~4 miles).</div>', unsafe_allow_html=True)
-    st.image("https://images.unsplash.com/photo-1505205296326-2178af1b47bf?q=80&w=2070&auto=format&fit=crop", caption="Art and Culture in Paris", use_column_width=True)
+    st.image("https://images.unsplash.com/photo-1505205296326-2178af1b47bf?q=80&w=2070&auto=format&fit=crop", caption="Art and Culture in Paris", use_container_width=True)
     
     with st.form(key="approve_activities_form"):
         approve_button = st.form_submit_button(label="Approve Activities", help="Ready for your itinerary?")
@@ -199,7 +210,7 @@ elif st.session_state.stage == "itinerary_generation":
     ]
     for day in itinerary:
         st.markdown(day.format(prefs=prefs), unsafe_allow_html=True)
-    st.image("https://images.unsplash.com/photo-1491438590914-1f1f98f6c0b5?q=80&w=2070&auto=format&fit=crop", caption="Bon Voyage!", use_column_width=True)
+    st.image("https://images.unsplash.com/photo-1491438590914-1f1f98f6c0b5?q=80&w=2070&auto=format&fit=crop", caption="Bon Voyage!", use_container_width=True)
     
     with st.form(key="start_over_form"):
         start_over_button = st.form_submit_button(label="Start Over", help="Plan another trip!")
