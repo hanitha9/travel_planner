@@ -1,5 +1,6 @@
 import streamlit as st
 import re
+from fuzzywuzzy import process
 
 # Custom CSS for updated aesthetics
 st.markdown("""
@@ -85,6 +86,80 @@ st.markdown("""
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 """, unsafe_allow_html=True)
 
+# Travel data structure (subset for demonstration)
+travel_data = {
+    "Europe": {
+        "France": {
+            "Paris": {
+                "activities": {
+                    "art": [
+                        {"name": "Louvre Museum", "description": "Iconic art like the Mona Lisa", "cost": "€17", "walking": "2 miles"},
+                        {"name": "Musée d’Orsay", "description": "Impressionist masterpieces", "cost": "€14", "walking": "2 miles"},
+                        {"name": "Musée de l’Orangerie", "description": "Monet’s Water Lilies", "cost": "€12", "walking": "1 mile"}
+                    ],
+                    "food": [
+                        {"name": "Le Marais Food Stroll", "description": "Casual falafel and pastries", "cost": "€6–10", "walking": "2 miles"},
+                        {"name": "Canal Saint-Martin Picnic", "description": "Local bites by the canal", "cost": "€10", "walking": "3 miles"}
+                    ],
+                    "history": [
+                        {"name": "Montmartre Art Walk", "description": "Historic artist district", "cost": "Free", "walking": "5 miles"}
+                    ],
+                    "offbeat": [
+                        {"name": "Street Art in Belleville", "description": "Offbeat murals", "cost": "Free", "walking": "4 miles"}
+                    ]
+                }
+            }
+        },
+        "United Kingdom": {
+            "England": {
+                "London": {
+                    "activities": {
+                        "history": [
+                            {"name": "British Museum", "description": "World-famous history and artifacts", "cost": "Free", "walking": "2 miles"},
+                            {"name": "Tower of London", "description": "Historic fortress and Crown Jewels", "cost": "£30", "walking": "2 miles"},
+                            {"name": "Westminster Abbey", "description": "Iconic Gothic church", "cost": "£29", "walking": "2 miles"}
+                        ],
+                        "food": [
+                            {"name": "Borough Market", "description": "Vegetarian food stalls like Ethiopian wraps", "cost": "£8–12", "walking": "3 miles"},
+                            {"name": "Covent Garden", "description": "Vegetarian dining options like The Barbary Next Door", "cost": "£10–15", "walking": "2 miles"},
+                            {"name": "Camden Market", "description": "Vegetarian street food and history", "cost": "£5–10", "walking": "3 miles"}
+                        ],
+                        "nature": [
+                            {"name": "Thames River Walk", "description": "Scenic walk past landmarks", "cost": "Free", "walking": "4 miles"}
+                        ]
+                    }
+                }
+            }
+        }
+    },
+    "Asia": {
+        "Japan": {
+            "Tokyo": {
+                "activities": {
+                    "culture": [
+                        {"name": "Senso-ji Temple", "description": "Historic Buddhist temple", "cost": "Free", "walking": "2 miles"},
+                        {"name": "Meiji Shrine", "description": "Serene Shinto shrine", "cost": "Free", "walking": "3 miles"}
+                    ],
+                    "food": [
+                        {"name": "Tsukiji Market", "description": "Fresh sushi and street food", "cost": "¥1000–2000", "walking": "2 miles"},
+                        {"name": "Dotonbori Food Tour", "description": "Street food like takoyaki", "cost": "¥1500–2500", "walking": "3 miles"}
+                    ],
+                    "nature": [
+                        {"name": "Shinjuku Gyoen National Garden", "description": "Beautiful gardens and greenery", "cost": "¥500", "walking": "3 miles"}
+                    ]
+                }
+            }
+        }
+    }
+}
+
+# Dynamic background image based on destination
+destination_images = {
+    "Paris": "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?q=80&w=2073&auto=format&fit=crop",
+    "London": "https://images.unsplash.com/photo-1529655682523-44aca611b2d0?q=80&w=2070&auto=format&fit=crop",
+    "Tokyo": "https://images.unsplash.com/photo-1542051841857-5f90071e7989?q=80&w=2070&auto=format&fit=crop"
+}
+
 # Initialize session state
 if "stage" not in st.session_state:
     st.session_state.stage = "input_refinement"
@@ -95,15 +170,47 @@ if "activities" not in st.session_state:
 if "scroll_to" not in st.session_state:
     st.session_state.scroll_to = None
 
-# Dynamic background image based on destination
-destination_images = {
-    "Paris": "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?q=80&w=2073&auto=format&fit=crop",
-    "London": "https://images.unsplash.com/photo-1529655682523-44aca611b2d0?q=80&w=2070&auto=format&fit=crop",
-    "Tokyo": "https://images.unsplash.com/photo-1542051841857-5f90071e7989?q=80&w=2070&auto=format&fit=crop"
-}
+# Helper function to find destination in travel_data
+def find_destination(user_input):
+    user_input = user_input.lower()
+    # Check for continents
+    continents = list(travel_data.keys())
+    continent_match = next((c for c in continents if c.lower() in user_input), None)
+    
+    if continent_match:
+        # If continent is specified, narrow down to countries and cities
+        countries = list(travel_data[continent_match].keys())
+        country_match = next((c for c in countries if c.lower() in user_input), None)
+        
+        if country_match:
+            cities = list(travel_data[continent_match][country_match].keys())
+            city_match = next((city for city in cities if city.lower() in user_input), None)
+            
+            if city_match:
+                return continent_match, country_match, city_match
+            else:
+                # Default to the first city in the country
+                return continent_match, country_match, cities[0]
+        else:
+            # Default to the first country and city in the continent
+            country = countries[0]
+            city = list(travel_data[continent_match][country].keys())[0]
+            return continent_match, country, city
+    else:
+        # Check for countries and cities directly
+        for continent, countries in travel_data.items():
+            for country, cities in countries.items():
+                for city in cities.keys():
+                    if city.lower() in user_input:
+                        return continent, country, city
+                if country.lower() in user_input:
+                    city = list(cities.keys())[0]
+                    return continent, country, city
+    # Default to Paris if no match
+    return "Europe", "France", "Paris"
 
 # Header with Dynamic Image
-header_image = destination_images.get(st.session_state.preferences.get("destination", "Paris"), destination_images["Paris"])
+header_image = destination_images.get(st.session_state.preferences.get("city", "Paris"), destination_images["Paris"])
 st.markdown('<div class="title">AI-Powered Travel Planner</div>', unsafe_allow_html=True)
 st.markdown('<div class="subtitle">Let’s craft your dream trip with a personalized itinerary!</div>', unsafe_allow_html=True)
 st.image(header_image, caption="Explore Your Next Adventure", use_container_width=True)
@@ -138,28 +245,37 @@ if st.session_state.stage == "input_refinement":
     
     if submit_button and user_input:
         prefs = {}
+        # Parse starting location
         if "from" in user_input.lower():
             match = re.search(r"from\s+([A-Za-z\s]+)", user_input, re.IGNORECASE)
             if match:
                 prefs["start"] = match.group(1).strip()
-        cities = ["Paris", "London", "Tokyo"]
-        destination = next((city.capitalize() for city in cities if city.lower() in user_input.lower()), None)
-        if destination:
-            prefs["destination"] = destination
+        
+        # Parse destination (continent, country, city)
+        continent, country, city = find_destination(user_input)
+        prefs["continent"] = continent
+        prefs["country"] = country
+        prefs["city"] = city
+        
+        # Parse budget
         if "budget" in user_input.lower():
             match = re.search(r"budget\s*[:\-\s]*(\w+)", user_input, re.IGNORECASE)
             if match:
                 prefs["budget"] = match.group(1).strip()
+        
+        # Parse dates
         if any(date in user_input.lower() for date in ["june", "july", "2025"]):
             prefs["dates"] = "June 1–7, 2025"
+        
+        # Parse interests
         interests = []
-        for interest in ["art", "food", "history", "nature", "famous", "offbeat"]:
+        for interest in ["art", "food", "history", "nature", "culture", "adventure", "famous", "offbeat"]:
             if interest in user_input.lower():
                 interests.append(interest)
         prefs["interests"] = interests if interests else ["art", "food"]
         
         st.session_state.preferences = prefs
-        if not all(k in prefs for k in ["destination", "dates"]):
+        if not all(k in prefs for k in ["city", "dates"]):
             st.warning("Hmm, I need more info. Could you clarify your destination and dates?")
             with st.form(key="clarify_form"):
                 clarification = st.text_area("Clarify your destination and dates:", height=100)
@@ -169,13 +285,14 @@ if st.session_state.stage == "input_refinement":
                     match = re.search(r"from\s+([A-Za-z\s]+)", clarification, re.IGNORECASE)
                     if match:
                         prefs["start"] = match.group(1).strip()
-                destination = next((city.capitalize() for city in cities if city.lower() in clarification.lower()), None)
-                if destination:
-                    prefs["destination"] = destination
+                continent, country, city = find_destination(clarification)
+                prefs["continent"] = continent
+                prefs["country"] = country
+                prefs["city"] = city
                 if any(date in clarification.lower() for date in ["june", "july", "2025"]):
                     prefs["dates"] = "June 1–7, 2025"
                 st.session_state.preferences = prefs
-                if "destination" in prefs and "dates" in prefs:
+                if "city" in prefs and "dates" in prefs:
                     st.session_state.stage = "refine_preferences"
                     st.session_state.scroll_to = "step2"
                     st.rerun()
@@ -192,8 +309,8 @@ elif st.session_state.stage == "refine_preferences":
     
     # Image above the refinement section
     st.markdown(f"""
-        <div class="image-container" style="background-image: url('{destination_images.get(prefs.get('destination', 'Paris'), destination_images['Paris'])}');">
-            <div class="image-overlay">{prefs.get('destination', 'Paris')} Awaits!</div>
+        <div class="image-container" style="background-image: url('{destination_images.get(prefs.get('city', 'Paris'), destination_images['Paris'])}');">
+            <div class="image-overlay">{prefs.get('city', 'Paris')} Awaits!</div>
         </div>
     """, unsafe_allow_html=True)
     
@@ -201,7 +318,7 @@ elif st.session_state.stage == "refine_preferences":
     Great, thanks for the details! Here’s what I’ve gathered:
     - **Travel Dates:** {prefs.get('dates', 'June 1–7, 2025')}
     - **Starting Location:** {prefs.get('start', 'Not specified')}
-    - **Destination:** {prefs.get('destination', 'Paris')}
+    - **Destination:** {prefs.get('city', 'Paris')} ({prefs.get('country', 'France')}, {prefs.get('continent', 'Europe')})
     - **Budget:** {prefs.get('budget', 'Moderate')}
     - **Preferences:** {interests_str}
     """)
@@ -219,6 +336,8 @@ elif st.session_state.stage == "refine_preferences":
     if confirm_button and refined_input:
         refined_text = refined_input.lower()
         specific_interests = "famous museums" if "famous" in refined_text else "hidden galleries" if "hidden" in refined_text or "offbeat" in refined_text else "famous museums"
+        if "landmarks" in refined_text.lower():
+            specific_interests = "famous landmarks"
         dietary = "none" if "none" in refined_text or "no dietary" in refined_text else "vegetarian" if "vegetarian" in refined_text else "none"
         accommodation = "budget-friendly, central" if "budget" in refined_text or "central" in refined_text else "budget-friendly, central"
         mobility_match = re.search(r"(\d+)\s*(miles|m)", refined_text)
@@ -226,8 +345,10 @@ elif st.session_state.stage == "refine_preferences":
         
         st.session_state.preferences = {
             "dates": prefs.get("dates", "June 1–7, 2025"),
-            "start": prefs.get("start", "New York"),
-            "destination": prefs.get("destination", "Paris"),
+            "start": prefs.get("start", "Not specified"),
+            "continent": prefs.get("continent", "Europe"),
+            "country": prefs.get("country", "France"),
+            "city": prefs.get("city", "Paris"),
             "budget": prefs.get("budget", "Moderate"),
             "interests": ", ".join(prefs.get("interests", ["art", "food"])) + f" ({specific_interests})",
             "accommodation": accommodation,
@@ -247,29 +368,55 @@ elif st.session_state.stage == "activity_suggestions":
     
     # Image above the suggestions section
     st.markdown(f"""
-        <div class="image-container" style="background-image: url('{destination_images.get(prefs.get('destination', 'Paris'), destination_images['Paris'])}');">
-            <div class="image-overlay">Discover {prefs.get('destination', 'Paris')}</div>
+        <div class="image-container" style="background-image: url('{destination_images.get(prefs.get('city', 'Paris'), destination_images['Paris'])}');">
+            <div class="image-overlay">Discover {prefs.get('city', 'Paris')}</div>
         </div>
     """, unsafe_allow_html=True)
     
     st.write("Based on your preferences, here are some exciting activities:")
-    st.markdown('<div class="suggestion-box">1. Louvre Museum - Iconic art like the Mona Lisa (~€17).</div>', unsafe_allow_html=True)
-    st.markdown('<div class="suggestion-box">2. Musée d’Orsay - Impressionist masterpieces (~€14).</div>', unsafe_allow_html=True)
-    st.markdown('<div class="suggestion-box">3. Montmartre Art Walk - Historic artist district (~5 miles).</div>', unsafe_allow_html=True)
-    st.markdown('<div class="suggestion-box">4. Le Marais Food Stroll - Casual falafel and pastries (~€6–10).</div>', unsafe_allow_html=True)
-    st.markdown('<div class="suggestion-box">5. Musée de l’Orangerie - Monet’s Water Lilies (~€12).</div>', unsafe_allow_html=True)
-    st.markdown('<div class="suggestion-box">6. Canal Saint-Martin Picnic - Local bites by the canal (~€10).</div>', unsafe_allow_html=True)
-    st.markdown('<div class="suggestion-box">7. Street Art in Belleville - Offbeat murals (~4 miles).</div>', unsafe_allow_html=True)
+    
+    # Fetch activities based on destination and preferences
+    continent = prefs.get("continent")
+    country = prefs.get("country")
+    city = prefs.get("city")
+    interests = prefs.get("interests").split(", ")[0].split(", ")  # e.g., ["art", "food"]
+    specific_interests = prefs.get("interests").split("(")[1].strip(")") if "(" in prefs.get("interests") else ""
+    dietary = prefs.get("dietary")
+    mobility = int(prefs.get("mobility"))
+    
+    activities = []
+    try:
+        city_activities = travel_data[continent][country][city]["activities"]
+        for interest in interests:
+            if interest in city_activities:
+                for activity in city_activities[interest]:
+                    # Filter by specific interests (e.g., famous museums)
+                    if specific_interests in activity["description"].lower() or not specific_interests:
+                        # Filter by walking distance
+                        activity_walking = int(activity["walking"].split()[0])
+                        if activity_walking <= mobility:
+                            # Filter by dietary preferences
+                            if dietary == "vegetarian" and "food" in interest:
+                                if "vegetarian" in activity["description"].lower():
+                                    activities.append(activity)
+                            else:
+                                activities.append(activity)
+    except KeyError:
+        st.error("Sorry, we don’t have activities for this destination yet. Please try another city.")
+        activities = []
+    
+    # Display activities
+    if activities:
+        for idx, activity in enumerate(activities[:7], 1):  # Limit to 7 activities
+            st.markdown(f'<div class="suggestion-box">{idx}. {activity["name"]} - {activity["description"]} (~{activity["cost"]}, ~{activity["walking"]}).</div>', unsafe_allow_html=True)
+    else:
+        st.write("No activities match your preferences. Please adjust your preferences or try another destination.")
     
     with st.form(key="approve_activities_form"):
         approve_button = st.form_submit_button(label="Approve Activities", help="Ready for your itinerary?")
     
     if approve_button:
-        st.session_state.activities = [
-            "Louvre Museum", "Musée d’Orsay", "Montmartre Art Walk",
-            "Le Marais Food Stroll", "Musée de l’Orangerie",
-            "Canal Saint-Martin Picnic", "Street Art in Belleville"
-        ]
+        st.session_state.activities = [activity["name"] for activity in activities[:7]]
         st.session_state.stage = "itinerary_generation"
         st.session_state.scroll_to = "step4"
         st.rerun()
@@ -278,18 +425,26 @@ elif st.session_state.stage == "activity_suggestions":
 elif st.session_state.stage == "itinerary_generation":
     prefs = st.session_state.preferences
     st.markdown('<div class="section-header" id="step4">Step 4: Your Personalized Itinerary</div>', unsafe_allow_html=True)
-    st.write(f"Here’s your tailored 7-day {prefs.get('destination', 'Paris')} itinerary:")
-    itinerary = [
-        f'<div class="itinerary-card"><i class="fas fa-plane-arrival"></i> <strong>Day 1: June 1 – Arrival & Le Marais</strong><br>- Afternoon: Arrive, check into {prefs.get("accommodation", "budget-friendly central")} hotel. Le Marais Food Stroll (~2 miles).</div>',
-        f'<div class="itinerary-card"><i class="fas fa-palette"></i> <strong>Day 2: June 2 – Louvre</strong><br>- Morning: Louvre Museum (~€17, ~2 miles walking).</div>',
-        f'<div class="itinerary-card"><i class="fas fa-paint-brush"></i> <strong>Day 3: June 3 – Impressionist Art</strong><br>- Morning: Musée d’Orsay (~€14). Afternoon: Musée de l’Orangerie (~€12, ~2.5 miles total).</div>',
-        f'<div class="itinerary-card"><i class="fas fa-walking"></i> <strong>Day 4: June 4 – Montmartre</strong><br>- Morning: Montmartre Art Walk (~5 miles).</div>',
-        f'<div class="itinerary-card"><i class="fas fa-utensils"></i> <strong>Day 5: June 5 – Canal Saint-Martin</strong><br>- Morning: Canal Saint-Martin Picnic (~3 miles).</div>',
-        f'<div class="itinerary-card"><i class="fas fa-spray-can"></i> <strong>Day 6: June 6 – Belleville</strong><br>- Morning: Street Art in Belleville (~4 miles).</div>',
-        f'<div class="itinerary-card"><i class="fas fa-plane-departure"></i> <strong>Day 7: June 7 – Departure</strong><br>- Morning: Depart from {prefs.get("destination", "Paris")}.</div>',
-    ]
-    for day in itinerary:
-        st.markdown(day, unsafe_allow_html=True)
+    st.write(f"Here’s your tailored 7-day {prefs.get('city', 'Paris')} itinerary:")
+    
+    # Generate itinerary
+    activities = st.session_state.activities
+    if not activities:
+        st.error("No activities available to create an itinerary. Please go back and select some activities.")
+    else:
+        itinerary = []
+        # Day 1: Arrival
+        itinerary.append(f'<div class="itinerary-card"><i class="fas fa-plane-arrival"></i> <strong>Day 1: June 1 – Arrival</strong><br>- Afternoon: Arrive, check into {prefs.get("accommodation", "budget-friendly central")} hotel.</div>')
+        
+        # Days 2–6: Activities
+        for day, activity in enumerate(activities[:5], 2):  # Spread 5 activities over days 2–6
+            itinerary.append(f'<div class="itinerary-card"><i class="fas fa-star"></i> <strong>Day {day}: June {day} – {activity}</strong><br>- Morning: {activity}.</div>')
+        
+        # Day 7: Departure
+        itinerary.append(f'<div class="itinerary-card"><i class="fas fa-plane-departure"></i> <strong>Day 7: June 7 – Departure</strong><br>- Morning: Depart from {prefs.get("city", "Paris")}.</div>')
+        
+        for day in itinerary:
+            st.markdown(day, unsafe_allow_html=True)
     
     with st.form(key="start_over_form"):
         start_over_button = st.form_submit_button(label="Start Over", help="Plan another trip!")
