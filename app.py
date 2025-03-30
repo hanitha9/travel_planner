@@ -280,26 +280,35 @@ if st.session_state.stage == "input_refinement":
             with st.form(key="clarify_form"):
                 clarification = st.text_area("Clarify your destination and dates:", height=100)
                 clarify_button = st.form_submit_button(label="Submit Clarification")
-            if clarify_button and clarification:
-                if "from" in clarification.lower():
-                    match = re.search(r"from\s+([A-Za-z\s]+)", clarification, re.IGNORECASE)
-                    if match:
-                        prefs["start"] = match.group(1).strip()
-                continent, country, city = find_destination(clarification)
-                prefs["continent"] = continent
-                prefs["country"] = country
-                prefs["city"] = city
-                if any(date in clarification.lower() for date in ["june", "july", "2025"]):
-                    prefs["dates"] = "June 1–7, 2025"
-                st.session_state.preferences = prefs
-                if "city" in prefs and "dates" in prefs:
-                    st.session_state.stage = "refine_preferences"
-                    st.session_state.scroll_to = "step2"
-                    st.rerun()
+            
+            # Add validation for empty clarification
+            if clarify_button:
+                if not clarification:
+                    st.error("Please provide clarification details before submitting.")
+                else:
+                    if "from" in clarification.lower():
+                        match = re.search(r"from\s+([A-Za-z\s]+)", clarification, re.IGNORECASE)
+                        if match:
+                            prefs["start"] = match.group(1).strip()
+                    continent, country, city = find_destination(clarification)
+                    prefs["continent"] = continent
+                    prefs["country"] = country
+                    prefs["city"] = city
+                    if any(date in clarification.lower() for date in ["june", "july", "2025"]):
+                        prefs["dates"] = "June 1–7, 2025"
+                    st.session_state.preferences = prefs
+                    if "city" in prefs and "dates" in prefs:
+                        st.session_state.stage = "refine_preferences"
+                        st.session_state.scroll_to = "step2"
+                        st.rerun()
+                    else:
+                        st.warning("Still missing some details. Please ensure you provide both destination and dates.")
         else:
             st.session_state.stage = "refine_preferences"
             st.session_state.scroll_to = "step2"
             st.rerun()
+    elif submit_button and not user_input:
+        st.error("Please provide some details before submitting!")
 
 # Stage 2: Refine Preferences
 elif st.session_state.stage == "refine_preferences":
