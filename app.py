@@ -40,7 +40,7 @@ if st.session_state.stage == "input_refinement":
                 prefs["budget"] = match.group(1).strip()
         if any(date in user_input.lower() for date in ["june", "july", "2025"]):
             prefs["dates"] = "June 1–7, 2025"  # Hardcoded for demo
-        # Flexible interest parsing (not strict list)
+        # Flexible interest parsing
         interests = []
         for interest in ["art", "food", "history", "nature", "famous", "offbeat"]:
             if interest in user_input.lower():
@@ -107,7 +107,7 @@ elif st.session_state.stage == "refine_preferences":
             "start": prefs.get("start", "New York"),
             "destination": prefs.get("destination", "Paris"),
             "budget": prefs.get("budget", "Moderate"),
-            "interests": f"{', '.join(prefs.get('interests', ['art', 'food']))} ({specific_interests})",
+            "interests": ", ".join(prefs.get("interests", ["art", "food"])) + f" ({specific_interests})",
             "accommodation": accommodation,
             "mobility": mobility,
             "dietary": dietary
