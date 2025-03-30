@@ -1,21 +1,60 @@
 import streamlit as st
-import pip
-
-def install(package):
-    if hasattr(pip, 'main'):
-        pip.main(['install', package])
-    else:
-        pip._internal.main(['install', package])
-
-install('geopy')
-install('pytz')
-
+import subprocess
+import sys
+import math
 import re
 from datetime import datetime, timedelta
 import random
 from collections import defaultdict
-import geopy.distance
-import pytz
+
+# Try to import geopy and pytz, with fallbacks
+GEOPY_AVAILABLE = True
+PYTZ_AVAILABLE = True
+
+try:
+    import geopy.distance
+    import pytz
+except ImportError:
+    try:
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "geopy", "pytz"])
+        import geopy.distance
+        import pytz
+    except:
+        GEOPY_AVAILABLE = False
+        PYTZ_AVAILABLE = False
+        st.warning("Some features may be limited - couldn't install geopy/pytz")
+
+# Distance calculation with fallback
+def calculate_distance(coord1, coord2):
+    if coord1 == (0, 0) or coord2 == (0, 0):
+        return "N/A"
+    
+    if GEOPY_AVAILABLE:
+        return f"{geopy.distance.distance(coord1, coord2).km:.1f} km"
+    else:
+        # Haversine formula fallback
+        lat1, lon1 = coord1
+        lat2, lon2 = coord2
+        R = 6371  # Earth radius in km
+        dLat = math.radians(lat2 - lat1)
+        dLon = math.radians(lon2 - lon1)
+        a = (math.sin(dLat/2) * math.sin(dLat/2) +
+             math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) *
+             math.sin(dLon/2) * math.sin(dLon/2))
+        c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
+        return f"{R * c:.1f} km"
+
+# Timezone handling with fallback
+def get_local_time(timezone):
+    if not PYTZ_AVAILABLE:
+        return "Timezone data unavailable"
+    try:
+        tz = pytz.timezone(timezone)
+        return datetime.now(tz).strftime("%I:%M %p")
+    except:
+        return "N/A"
+
+# [Rest of your code remains exactly the same]
 # Custom CSS for updated aesthetics
 st.markdown("""
     <style>
