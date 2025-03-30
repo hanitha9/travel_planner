@@ -9,22 +9,22 @@ from collections import defaultdict
 # ======================
 st.markdown("""
     <style>
-    /* Main background with beautiful travel image */
+    /* NYC Background with overlay */
     .stApp {
-        background-image: url('https://images.unsplash.com/photo-1506929562872-bb421503ef21?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80');
+        background-image: url('https://images.unsplash.com/photo-1499092346589-b9b6be3e94b2?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80');
         background-size: cover;
         background-position: center;
         background-attachment: fixed;
     }
     
-    /* Main content container */
-    .main-container {
-        background-color: rgba(255, 255, 255, 0.95);
+    /* Overlay to improve readability */
+    .overlay {
+        background-color: rgba(255, 255, 255, 0.88);
         border-radius: 15px;
         padding: 40px;
         margin: 5% auto;
         max-width: 800px;
-        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
         border: 1px solid #e0e0e0;
     }
     
@@ -77,39 +77,9 @@ st.markdown("""
         box-shadow: 0 4px 8px rgba(0,0,0,0.1);
     }
     
-    /* Itinerary styling */
-    .day-card {
-        background-color: white;
-        border-radius: 12px;
-        padding: 25px;
-        margin: 20px 0;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-        border-left: 5px solid #3498DB;
-    }
-    
-    .day-header {
-        font-family: 'Playfair Display', serif;
-        font-size: 24px;
-        color: #2C3E50;
-        font-weight: 600;
-        margin-bottom: 20px;
-        border-bottom: 1px solid #EAEAEA;
-        padding-bottom: 10px;
-    }
-    
-    .activity-item {
-        font-family: 'Montserrat', sans-serif;
-        font-size: 16px;
-        color: #34495E;
-        margin: 15px 0;
-        padding-left: 20px;
-        border-left: 3px solid #BDC3C7;
-        line-height: 1.6;
-    }
-    
     /* Responsive adjustments */
     @media (max-width: 768px) {
-        .main-container {
+        .overlay {
             padding: 25px;
             margin: 10% 5%;
         }
@@ -131,8 +101,6 @@ if "stage" not in st.session_state:
     st.session_state.stage = "input"
 if "prefs" not in st.session_state:
     st.session_state.prefs = {}
-if "activities" not in st.session_state:
-    st.session_state.activities = []
 
 # ======================
 # DESTINATION DATABASE
@@ -377,7 +345,6 @@ DESTINATION_DATA = {
         "country": "Egypt", "cost_multiplier": 0.7
     }
 }
-
 # ======================
 # HELPER FUNCTIONS
 # ======================
@@ -424,7 +391,7 @@ def parse_preferences(user_input):
             prefs["destination"] = city
             break
     if "destination" not in prefs:
-        prefs["destination"] = "Paris"
+        prefs["destination"] = "New York"
     
     # Dates
     date_info = parse_dates(user_input)
@@ -456,48 +423,23 @@ def parse_preferences(user_input):
     
     return prefs
 
-def generate_itinerary(prefs):
-    itinerary = []
-    activities = []
-    dest_data = DESTINATION_DATA.get(prefs["destination"], {})
-    
-    # Collect all relevant activities
-    for interest in prefs["interests"]:
-        if interest in dest_data.get("activities", {}):
-            activities.extend(dest_data["activities"][interest])
-    
-    # Shuffle and select activities
-    random.shuffle(activities)
-    selected_activities = activities[:min(len(activities), prefs["duration"] * 2)]
-    
-    # Build daily itinerary
-    for day in range(1, prefs["duration"] + 1):
-        date = (prefs["start_date"] + timedelta(days=day-1)).strftime("%A, %b %d")
-        day_plan = {
-            "date": date,
-            "morning": selected_activities.pop() if selected_activities else "Explore local area",
-            "afternoon": selected_activities.pop() if selected_activities else "Leisure time",
-            "evening": "Dinner at recommended restaurant" if day > 1 else "Rest after travel"
-        }
-        itinerary.append(day_plan)
-    
-    return itinerary
-
 # ======================
 # MAIN APP PAGES
 # ======================
 def input_page():
-    """Initial input page with beautiful background"""
-    with st.container():
-        st.markdown('<div class="main-container">', unsafe_allow_html=True)
+    """Initial input page with NYC background"""
+    col1, col2, col3 = st.columns([1, 6, 1])
+    
+    with col2:
+        st.markdown('<div class="overlay">', unsafe_allow_html=True)
         
-        st.markdown("<div class='main-title'>Travel Planner</div>", unsafe_allow_html=True)
-        st.markdown("<div class='sub-title'>Plan your perfect journey with AI assistance</div>", unsafe_allow_html=True)
+        st.markdown("<div class='main-title'>New York Travel Planner</div>", unsafe_allow_html=True)
+        st.markdown("<div class='sub-title'>Plan your perfect NYC adventure</div>", unsafe_allow_html=True)
         
         with st.form("trip_input"):
             user_input = st.text_area(
-                "Describe your trip (destination, dates, budget, interests):",
-                value="Bangkok from New York, Jun 1-4, 2025, budget, art and food",
+                "Describe your trip (dates, budget, interests):",
+                value="New York, Jun 1-4, 2025, luxury, art and food",
                 height=150
             )
             
@@ -512,39 +454,55 @@ def input_page():
         st.markdown('</div>', unsafe_allow_html=True)
 
 def itinerary_page():
-    """Beautifully styled itinerary display"""
+    """Itinerary display page"""
     prefs = st.session_state.prefs
-    itinerary = generate_itinerary(prefs)
     dest_data = DESTINATION_DATA.get(prefs["destination"], {})
     
-    with st.container():
-        st.markdown('<div class="main-container">', unsafe_allow_html=True)
+    col1, col2, col3 = st.columns([1, 6, 1])
+    
+    with col2:
+        st.markdown('<div class="overlay">', unsafe_allow_html=True)
         
-        st.markdown(f"<div class='main-title'>Your {prefs['duration']}-Day Trip to {prefs['destination']}</div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='main-title'>Your {prefs['duration']}-Day NYC Itinerary</div>", unsafe_allow_html=True)
         st.markdown(f"<div class='sub-title'>{prefs['dates']}</div>", unsafe_allow_html=True)
         
         if "image" in dest_data:
-            st.image(dest_data["image"], use_container_width=True)
+            st.image(dest_data["image"], use_container_width=True, caption=f"{prefs['destination']}, {dest_data.get('country', '')}")
         
         st.markdown(f"""
-            <div style="text-align: center; margin-bottom: 30px;">
-                <span style="font-family: 'Montserrat'; font-size: 16px; color: #4A6B8A;">
-                    {prefs['destination']}, {dest_data.get('country', '')} • 
-                    {prefs['budget'].capitalize()} Budget • 
-                    {prefs['start'] if prefs['start'] != 'Not specified' else 'No origin specified'}
-                </span>
+            <div style="text-align: center; margin: 20px 0 30px; font-family: Montserrat; color: #4A6B8A;">
+                <b>Budget:</b> {prefs['budget'].capitalize()} • 
+                <b>Interests:</b> {', '.join([i.capitalize() for i in prefs['interests'])} • 
+                <b>From:</b> {prefs['start'] if prefs['start'] != 'Not specified' else 'Not specified'}
             </div>
         """, unsafe_allow_html=True)
         
-        st.markdown("<div style='font-family: Montserrat; font-size: 22px; color: #2C3E50; margin: 30px 0 20px;'>Your Itinerary</div>", unsafe_allow_html=True)
+        # Generate sample itinerary
+        st.markdown("### Sample Itinerary")
         
-        for day in itinerary:
+        activities = []
+        for interest in prefs["interests"]:
+            if interest in dest_data.get("activities", {}):
+                activities.extend(dest_data["activities"][interest])
+        
+        random.shuffle(activities)
+        num_days = prefs["duration"]
+        
+        for day in range(1, num_days + 1):
+            date = (prefs["start_date"] + timedelta(days=day-1)).strftime("%A, %b %d")
+            
             st.markdown(f"""
-                <div class='day-card'>
-                    <div class='day-header'>{day['date']}</div>
-                    <div class='activity-item'>🌅 Morning: {day['morning']}</div>
-                    <div class='activity-item'>☀️ Afternoon: {day['afternoon']}</div>
-                    <div class='activity-item'>🌙 Evening: {day['evening']}</div>
+                <div style="background: white; border-radius: 10px; padding: 20px; margin: 15px 0; border-left: 4px solid #3498DB;">
+                    <div style="font-family: Playfair Display; font-size: 20px; color: #2C3E50; margin-bottom: 15px;">Day {day}: {date}</div>
+                    <div style="font-family: Montserrat; margin: 10px 0; padding-left: 15px; border-left: 2px solid #EAEAEA;">
+                        🌅 <b>Morning:</b> {activities.pop() if activities else "Explore local area"}
+                    </div>
+                    <div style="font-family: Montserrat; margin: 10px 0; padding-left: 15px; border-left: 2px solid #EAEAEA;">
+                        ☀️ <b>Afternoon:</b> {activities.pop() if activities else "Leisure time"}
+                    </div>
+                    <div style="font-family: Montserrat; margin: 10px 0; padding-left: 15px; border-left: 2px solid #EAEAEA;">
+                        🌙 <b>Evening:</b> {random.choice(["Dinner at recommended restaurant", "Night tour", "Broadway show"]) if day > 1 else "Rest after travel"}
+                    </div>
                 </div>
             """, unsafe_allow_html=True)
         
