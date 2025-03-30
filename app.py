@@ -411,7 +411,7 @@ elif st.session_state.stage == "activity_suggestions":
         st.session_state.scroll_to = "step4"
         st.rerun()
 
-# Stage 4: Itinerary Generation
+# Stage 4: Itinerary Generation (Fixed Version)
 elif st.session_state.stage == "itinerary_generation":
     prefs = st.session_state.preferences
     activities = st.session_state.activities
@@ -434,31 +434,40 @@ elif st.session_state.stage == "itinerary_generation":
     except:
         num_days = 5
     
-    # Distribute activities across days
+    # Create a shuffled copy of activities
+    shuffled_activities = activities.copy()
+    random.shuffle(shuffled_activities)
+    
+    # Distribute activities across days ensuring variety
     daily_activities = {}
-    for i in range(min(num_days, 7)):  # Max 7 days
-        day_num = i + 1
+    activity_index = 0
+    
+    for day_num in range(1, min(num_days, 7) + 1):  # Max 7 days
         daily_activities[day_num] = []
-        # Try to include at least one activity per interest
-        for interest in prefs.get("interests", []):
-            matching_acts = [act for act in activities if interest.lower() in act.lower()]
-            if matching_acts and len(daily_activities[day_num]) < 2:
-                daily_activities[day_num].append(random.choice(matching_acts))
-        # Fill remaining slots
-        while len(daily_activities[day_num]) < 2 and activities:
-            act = random.choice(activities)
-            if act not in daily_activities[day_num]:
-                daily_activities[day_num].append(act)
+        
+        # Add 2 activities per day
+        for _ in range(2):
+            if activity_index >= len(shuffled_activities):
+                # If we run out of activities, reshuffle (but exclude already used ones)
+                remaining = [act for act in activities if act not in [a for day in daily_activities.values() for a in day]]
+                if not remaining:
+                    remaining = activities.copy()  # If all used, start over
+                random.shuffle(remaining)
+                shuffled_activities = remaining
+                activity_index = 0
+            
+            daily_activities[day_num].append(shuffled_activities[activity_index])
+            activity_index += 1
     
     # Generate itinerary cards
-    for day_num, day_activities in daily_activities.items():
+    for day_num, day_acts in daily_activities.items():
         day_title = f"Day {day_num}"
         if day_num == 1:
             day_title += " - Arrival"
         elif day_num == num_days:
             day_title += " - Departure"
         
-        activities_html = "<br>- " + "<br>- ".join(day_activities)
+        activities_html = "<br>- " + "<br>- ".join(day_acts)
         
         st.markdown(f"""
             <div class="itinerary-card">
