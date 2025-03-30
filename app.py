@@ -20,7 +20,7 @@ def parse_dates(text):
     text_lower = text.lower()
     today = datetime.now()
     
-    # Specific date ranges (e.g., June 1–7, 2025)
+    # Specific date ranges (e.g., Jun 1–4, 2025 or 06/01/2025 - 06/04/2025)
     date_range = re.search(r"(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})\s*[-–to]+\s*(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})", text_lower)
     if date_range:
         try:
@@ -36,7 +36,7 @@ def parse_dates(text):
         except:
             pass
     
-    # Month Day - Day, Year (e.g., Jun 10-15, 2023)
+    # Month Day - Day, Year (e.g., Jun 1-4, 2025)
     month_range = re.search(r"(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+(\d{1,2})\s*[-–]\s*(\d{1,2}),?\s+(\d{4})", text_lower)
     if month_range:
         try:
@@ -117,7 +117,7 @@ def parse_preferences(user_input):
     
     return prefs
 
-# Mock web search function (replace with real API if available)
+# Mock web search function
 def search_activities(destination, interest):
     """Mock web search for activities"""
     if destination in DESTINATION_DATA and interest in DESTINATION_DATA[destination]["activities"]:
@@ -367,6 +367,7 @@ DESTINATION_DATA = {
         "country": "Egypt", "cost_multiplier": 0.7
     }
 }
+
 # ======================
 # MAIN APP
 # ======================
@@ -379,7 +380,7 @@ def main():
             st.subheader("Plan Your Dream Trip")
             user_input = st.text_area(
                 "Describe your trip (e.g., destination, dates, budget, interests):",
-                value="Paris from New York, June 1–7, 2025, moderate budget, art and food",
+                value="Paris from New York, Jun 1-4, 2025, moderate budget, art and food",
                 height=150
             )
             
@@ -413,36 +414,22 @@ def main():
                 value=prefs.get("start", "Not specified")
             )
             
-            # Dates and Duration
+            # Calendar-style Dates
             col1, col2 = st.columns(2)
             with col1:
-                new_dates = st.text_input(
-                    "Travel Dates:",
-                    value=prefs.get("dates", "")
+                start_date = st.date_input(
+                    "Start Date:",
+                    value=prefs.get("start_date", datetime.now()),
+                    min_value=datetime.now()
                 )
             with col2:
-                duration_options = {
-                    "Weekend (2-3 days)": 3,
-                    "Short trip (4-5 days)": 5,
-                    "One week (7 days)": 7,
-                    "Two weeks (14 days)": 14,
-                    "Custom duration": "custom"
-                }
-                current_duration = prefs.get("duration", 7)
-                new_duration = st.selectbox(
-                    "Trip Duration:",
-                    list(duration_options.keys()),
-                    index=list(duration_options.values()).index(
-                        current_duration if current_duration in duration_options.values() else 7
-                    )
+                end_date = st.date_input(
+                    "End Date:",
+                    value=prefs.get("end_date", datetime.now() + timedelta(days=6)),
+                    min_value=start_date
                 )
-                if new_duration == "Custom duration":
-                    custom_days = st.number_input(
-                        "Enter number of days:",
-                        min_value=1,
-                        max_value=60,
-                        value=current_duration
-                    )
+            new_duration = (end_date - start_date).days + 1
+            new_dates = f"{start_date.strftime('%b %d, %Y')} - {end_date.strftime('%b %d, %Y')}"
             
             # Budget
             budget_options = ["Luxury", "Moderate", "Budget"]
@@ -481,20 +468,21 @@ def main():
             if st.form_submit_button("Confirm Preferences"):
                 if not new_interests:
                     st.error("Please select at least one interest.")
+                elif new_duration < 1:
+                    st.error("End date must be after start date.")
                 else:
-                    final_duration = custom_days if new_duration == "Custom duration" else duration_options[new_duration]
                     st.session_state.preferences = {
                         "destination": new_dest,
                         "start": new_start,
                         "dates": new_dates,
-                        "duration": final_duration,
+                        "duration": new_duration,
                         "budget": new_budget.lower(),
                         "interests": [i.lower() for i in new_interests],
                         "dietary": new_dietary.lower(),
                         "mobility": new_mobility,
                         "accommodation": new_accommodation.lower(),
-                        "start_date": prefs.get("start_date", datetime.now()),
-                        "end_date": prefs.get("start_date", datetime.now()) + timedelta(days=final_duration-1),
+                        "start_date": start_date,
+                        "end_date": end_date,
                         "destination_data": DESTINATION_DATA.get(new_dest)
                     }
                     st.session_state.stage = "activity_suggestions"
@@ -547,37 +535,43 @@ def main():
         st.subheader("Your Complete Itinerary")
         used_activities = set()
         selected_activities = st.session_state.activities
+        fallback_options = ["Free time", "Explore local markets", "Relax at a park"]
         
         for day in range(1, duration + 1):
             current_date = (prefs["start_date"] + timedelta(days=day-1)).strftime("%A, %b %d")
             st.markdown(f"#### Day {day}: {current_date}")
             
             # Morning
-            if day <= len(selected_activities):
+            if selected_activities and day <= len(selected_activities):
                 activity = selected_activities[day-1]
                 st.markdown(f"- **Morning (9AM-12PM):** {activity}")
                 used_activities.add(activity)
             else:
-                st.markdown("- **Morning (9AM-12PM):** Free time or local exploration")
+                st.markdown(f"- **Morning (9AM-12PM):** {random.choice(fallback_options)}")
             
             # Lunch with dietary consideration
             lunch_base = random.choice(["Local cafe", "Recommended restaurant", "Street food"])
             dietary_note = f" ({prefs['dietary']} options)" if prefs['dietary'] != "none" else ""
             st.markdown(f"- **Lunch (12PM-1PM):** {lunch_base}{dietary_note}")
             
-            # Afternoon (alternate activities if available)
-            if day + len(selected_activities) <= len(selected_activities) * 2:
-                alt_activity = random.choice([a for a in selected_activities if a not in used_activities])
-                st.markdown(f"- **Afternoon (2PM-5PM):** {alt_activity}")
-                used_activities.add(alt_activity)
+            # Afternoon
+            available_activities = [a for a in selected_activities if a not in used_activities]
+            if available_activities:
+                activity = random.choice(available_activities)
+                st.markdown(f"- **Afternoon (2PM-5PM):** {activity}")
+                used_activities.add(activity)
             else:
-                st.markdown("- **Afternoon (2PM-5PM):** Relax or explore nearby")
+                st.markdown(f"- **Afternoon (2PM-5PM):** {random.choice(fallback_options)}")
             
             # Evening (skip first day)
-            if day > 1 and len(used_activities) < len(selected_activities):
-                evening_activity = random.choice([a for a in selected_activities if a not in used_activities])
-                st.markdown(f"- **Evening (7PM-10PM):** {evening_activity}")
-                used_activities.add(evening_activity)
+            if day > 1:
+                available_activities = [a for a in selected_activities if a not in used_activities]
+                if available_activities:
+                    activity = random.choice(available_activities)
+                    st.markdown(f"- **Evening (7PM-10PM):** {activity}")
+                    used_activities.add(activity)
+                else:
+                    st.markdown(f"- **Evening (7PM-10PM):** {random.choice(fallback_options)}")
             
             st.markdown("---")
         
