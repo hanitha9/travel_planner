@@ -1,3 +1,5 @@
 streamlit
 fuzzywuzzy
 python-Levenshtein
+geopy>=2.3.0
+pytz>=2023.3
