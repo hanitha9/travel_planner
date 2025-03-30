@@ -23,13 +23,6 @@ st.markdown("""
         color: #FFD700;
         margin-top: 20px;
     }
-    .debug {
-        font-size: 12px;
-        color: #888888;
-        background-color: #f0f0f0;
-        padding: 10px;
-        border-radius: 5px;
-    }
     .suggestion-box {
         background-color: #FFFFFF;
         padding: 15px;
@@ -106,12 +99,7 @@ destination_images = {
 header_image = destination_images.get(st.session_state.preferences.get("destination", "Paris"), destination_images["Paris"])
 st.markdown('<div class="title">AI-Powered Travel Planner</div>', unsafe_allow_html=True)
 st.markdown('<div class="subtitle">Let\'s craft your dream trip with a personalized itinerary!</div>', unsafe_allow_html=True)
-st.image(header_image, caption="Explore Your Next Adventure", use_column_width=True)
-
-# Debug: Show current stage and preferences
-with st.expander("Debug Info", expanded=False):
-    st.markdown(f'<div class="debug">Current Stage: {st.session_state.stage}</div>', unsafe_allow_html=True)
-    st.markdown(f'<div class="debug">Current Preferences: {st.session_state.preferences}</div>', unsafe_allow_html=True)
+st.image(header_image, caption="Explore Your Next Adventure", use_container_width=True)
 
 # Scroll to section if set
 if st.session_state.scroll_to:
