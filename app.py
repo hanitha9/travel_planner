@@ -1,7 +1,7 @@
 import streamlit as st
-import re  # For basic input parsing
+import re
 
-# Simulated web-search database (replace with real API in a production setting)
+# Simulated web-search database
 ACTIVITIES_DB = {
     "Paris": {
         "art": [
@@ -41,16 +41,26 @@ if st.session_state.stage == "input_refinement":
         submit_button = st.form_submit_button(label="Submit Preferences")
     
     if submit_button and user_input:
-        # Basic parsing for flexibility
         prefs = {}
         if "from" in user_input.lower():
-            prefs["start"] = re.search(r"from\s+([A-Za-z\s]+)", user_input, re.IGNORECASE).group(1).strip()
-        if any(city in user_input.lower() for city in ["paris", "london", "tokyo"]):  # Add more destinations as needed
-            prefs["destination"] = next(city.capitalize() for city in ["Paris", "London", "Tokyo"] if city in user_input.lower())
+            match = re.search(r"from\s+([A-Za-z\s]+)", user_input, re.IGNORECASE)
+            if match:
+                prefs["start"] = match.group(1).strip()
+        
+        # Check for destination with a fallback
+        cities = ["Paris", "London", "Tokyo"]
+        destination = next((city.capitalize() for city in cities if city.lower() in user_input.lower()), None)
+        if destination:
+            prefs["destination"] = destination
+        
         if "budget" in user_input.lower():
-            prefs["budget"] = re.search(r"budget\s*[:\-\s]*(\w+)", user_input, re.IGNORECASE).group(1).strip()
+            match = re.search(r"budget\s*[:\-\s]*(\w+)", user_input, re.IGNORECASE)
+            if match:
+                prefs["budget"] = match.group(1).strip()
+        
         if any(date in user_input.lower() for date in ["june", "july", "2025"]):
-            prefs["dates"] = "June 1–7, 2025"  # Hardcoded for demo; could parse dynamically
+            prefs["dates"] = "June 1–7, 2025"  # Hardcoded for demo
+        
         prefs["interests"] = [i.strip() for i in user_input.lower().split(",") if i.strip() in ["art", "food", "history", "nature"]]
         
         st.session_state.preferences = prefs
@@ -62,9 +72,12 @@ if st.session_state.stage == "input_refinement":
                 clarify_button = st.form_submit_button(label="Submit Clarification")
             if clarify_button and clarification:
                 if "from" in clarification.lower():
-                    prefs["start"] = re.search(r"from\s+([A-Za-z\s]+)", clarification, re.IGNORECASE).group(1).strip()
-                if any(city in clarification.lower() for city in ["paris", "london", "tokyo"]):
-                    prefs["destination"] = next(city.capitalize() for city in ["Paris", "London", "Tokyo"] if city in clarification.lower())
+                    match = re.search(r"from\s+([A-Za-z\s]+)", clarification, re.IGNORECASE)
+                    if match:
+                        prefs["start"] = match.group(1).strip()
+                destination = next((city.capitalize() for city in cities if city.lower() in clarification.lower()), None)
+                if destination:
+                    prefs["destination"] = destination
                 if any(date in clarification.lower() for date in ["june", "july", "2025"]):
                     prefs["dates"] = "June 1–7, 2025"
                 st.session_state.preferences = prefs
@@ -98,7 +111,6 @@ elif st.session_state.stage == "refine_preferences":
         confirm_button = st.form_submit_button(label="Confirm Details")
     
     if confirm_button and refined_input:
-        # Parse refined input dynamically
         refined_lines = [line.strip() for line in refined_input.split("\n") if line.strip()]
         if len(refined_lines) >= 4:
             specific_interests = refined_lines[0].lower()
@@ -129,12 +141,10 @@ elif st.session_state.stage == "activity_suggestions":
     for interest in interests:
         if interest in ACTIVITIES_DB.get(dest, {}):
             acts = ACTIVITIES_DB[dest][interest]
-            # Filter by specific interests and mobility
             filtered_acts = [act for act in acts if (specific in act.get("type", "") or interest != "art") and act["miles"] <= mobility]
-            # Budget filter (simple heuristic: moderate = <€20)
             if budget == "moderate":
                 filtered_acts = [act for act in filtered_acts if "€" not in act["desc"] or int(re.search(r"€(\d+)", act["desc"]).group(1)) <= 20]
-            suggestions.extend(filtered_acts[:3])  # Limit to 3 per interest
+            suggestions.extend(filtered_acts[:3])
     
     for i, act in enumerate(suggestions, 1):
         st.write(f"{i}. {act['name']} - {act['desc']}")
