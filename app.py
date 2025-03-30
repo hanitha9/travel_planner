@@ -13,7 +13,7 @@ st.markdown("""
     }
     .subtitle {
         font-size: 20px;
-        color: #FFFACD; /* Lemon Chiffon */
+        color: #00BFFF; /* Deep Sky Blue to match title */
         text-align: center;
         margin-bottom: 20px;
     }
