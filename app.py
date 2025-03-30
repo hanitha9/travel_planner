@@ -105,8 +105,8 @@ destination_images = {
 # Header with Dynamic Image
 header_image = destination_images.get(st.session_state.preferences.get("destination", "Paris"), destination_images["Paris"])
 st.markdown('<div class="title">AI-Powered Travel Planner</div>', unsafe_allow_html=True)
-st.markdown('<div class="subtitle">Let’s craft your dream trip with a personalized itinerary!</div>', unsafe_allow_html=True)
-st.image(header_image, caption="Explore Your Next Adventure", use_container_width=True)
+st.markdown('<div class="subtitle">Let's craft your dream trip with a personalized itinerary!</div>', unsafe_allow_html=True)
+st.image(header_image, caption="Explore Your Next Adventure", use_column_width=True)
 
 # Debug: Show current stage and preferences
 with st.expander("Debug Info", expanded=False):
@@ -134,7 +134,7 @@ if st.session_state.stage == "input_refinement":
     st.markdown('<div class="section-header" id="step1">Step 1: Tell Us About Your Trip</div>', unsafe_allow_html=True)
     with st.form(key="initial_input_form"):
         user_input = st.text_area("Share your trip details (e.g., destination, dates, budget, interests):", height=100)
-        submit_button = st.form_submit_button(label="Submit Preferences", help="Let’s get started!")
+        submit_button = st.form_submit_button(label="Submit Preferences", help="Let's get started!")
     
     if submit_button and user_input:
         prefs = {}
@@ -151,7 +151,7 @@ if st.session_state.stage == "input_refinement":
             if match:
                 prefs["budget"] = match.group(1).strip()
         if any(date in user_input.lower() for date in ["june", "july", "2025"]):
-            prefs["dates"] = "June 1–7, 2025"
+            prefs["dates"] = "June 1-7, 2025"
         interests = []
         for interest in ["art", "food", "history", "nature", "famous", "offbeat"]:
             if interest in user_input.lower():
@@ -159,27 +159,22 @@ if st.session_state.stage == "input_refinement":
         prefs["interests"] = interests if interests else ["art", "food"]
         
         st.session_state.preferences = prefs
-        if not all(k in prefs for k in ["destination", "dates"]):
-            st.warning("Hmm, I need more info. Could you clarify your destination and dates?")
-            with st.form(key="clarify_form"):
-                clarification = st.text_area("Clarify your destination and dates:", height=100)
-                clarify_button = st.form_submit_button(label="Submit Clarification")
-            if clarify_button and clarification:
-                if "from" in clarification.lower():
-                    match = re.search(r"from\s+([A-Za-z\s]+)", clarification, re.IGNORECASE)
-                    if match:
-                        prefs["start"] = match.group(1).strip()
-                destination = next((city.capitalize() for city in cities if city.lower() in clarification.lower()), None)
-                if destination:
-                    prefs["destination"] = destination
-                if any(date in clarification.lower() for date in ["june", "july", "2025"]):
-                    prefs["dates"] = "June 1–7, 2025"
-                st.session_state.preferences = prefs
-                if "destination" in prefs and "dates" in prefs:
-                    st.session_state.stage = "refine_preferences"
-                    st.session_state.scroll_to = "step2"
-                    st.rerun()
+        
+        # Check if we have minimum required info (destination and dates)
+        if not prefs.get("destination"):
+            st.warning("Please specify your destination (e.g., Paris, London, Tokyo)")
+        elif not prefs.get("dates"):
+            st.warning("Please specify your travel dates (e.g., June 1-7, 2025)")
         else:
+            # If we have minimum info, proceed to next stage
+            st.session_state.stage = "refine_preferences"
+            st.session_state.scroll_to = "step2"
+            st.rerun()
+
+    # If we're still in input_refinement but have preferences (from previous attempts)
+    if st.session_state.preferences and st.session_state.stage == "input_refinement":
+        prefs = st.session_state.preferences
+        if prefs.get("destination") and prefs.get("dates"):
             st.session_state.stage = "refine_preferences"
             st.session_state.scroll_to = "step2"
             st.rerun()
@@ -198,8 +193,8 @@ elif st.session_state.stage == "refine_preferences":
     """, unsafe_allow_html=True)
     
     st.write(f"""
-    Great, thanks for the details! Here’s what I’ve gathered:
-    - **Travel Dates:** {prefs.get('dates', 'June 1–7, 2025')}
+    Great, thanks for the details! Here's what I've gathered:
+    - **Travel Dates:** {prefs.get('dates', 'June 1-7, 2025')}
     - **Starting Location:** {prefs.get('start', 'Not specified')}
     - **Destination:** {prefs.get('destination', 'Paris')}
     - **Budget:** {prefs.get('budget', 'Moderate')}
@@ -227,7 +222,7 @@ elif st.session_state.stage == "refine_preferences":
         mobility = mobility_match.group(1) if mobility_match else "5"
         
         st.session_state.preferences = {
-            "dates": prefs.get("dates", "June 1–7, 2025"),
+            "dates": prefs.get("dates", "June 1-7, 2025"),
             "start": prefs.get("start", "New York"),
             "destination": prefs.get("destination", "Paris"),
             "budget": prefs.get("budget", "Moderate"),
@@ -259,25 +254,25 @@ elif st.session_state.stage == "activity_suggestions":
     # Dynamic activity suggestions based on destination
     if prefs.get("destination") == "Paris":
         st.markdown('<div class="suggestion-box">1. Louvre Museum - Iconic art like the Mona Lisa (~€17).</div>', unsafe_allow_html=True)
-        st.markdown('<div class="suggestion-box">2. Musée d’Orsay - Impressionist masterpieces (~€14).</div>', unsafe_allow_html=True)
+        st.markdown('<div class="suggestion-box">2. Musée d'Orsay - Impressionist masterpieces (~€14).</div>', unsafe_allow_html=True)
         st.markdown('<div class="suggestion-box">3. Montmartre Art Walk - Historic artist district (~5 miles).</div>', unsafe_allow_html=True)
-        st.markdown('<div class="suggestion-box">4. Le Marais Food Stroll - Casual falafel and pastries (~€6–10).</div>', unsafe_allow_html=True)
-        st.markdown('<div class="suggestion-box">5. Musée de l’Orangerie - Monet’s Water Lilies (~€12).</div>', unsafe_allow_html=True)
+        st.markdown('<div class="suggestion-box">4. Le Marais Food Stroll - Casual falafel and pastries (~€6-10).</div>', unsafe_allow_html=True)
+        st.markdown('<div class="suggestion-box">5. Musée de l'Orangerie - Monet's Water Lilies (~€12).</div>', unsafe_allow_html=True)
         st.markdown('<div class="suggestion-box">6. Canal Saint-Martin Picnic - Local bites by the canal (~€10).</div>', unsafe_allow_html=True)
         st.markdown('<div class="suggestion-box">7. Street Art in Belleville - Offbeat murals (~4 miles).</div>', unsafe_allow_html=True)
         activities = [
-            "Louvre Museum", "Musée d’Orsay", "Montmartre Art Walk",
-            "Le Marais Food Stroll", "Musée de l’Orangerie",
+            "Louvre Museum", "Musée d'Orsay", "Montmartre Art Walk",
+            "Le Marais Food Stroll", "Musée de l'Orangerie",
             "Canal Saint-Martin Picnic", "Street Art in Belleville"
         ]
     elif prefs.get("destination") == "London":
         st.markdown('<div class="suggestion-box">1. British Museum - World-famous history and artifacts (Free entry).</div>', unsafe_allow_html=True)
         st.markdown('<div class="suggestion-box">2. Tower of London - Historic fortress and Crown Jewels (~£30).</div>', unsafe_allow_html=True)
         st.markdown('<div class="suggestion-box">3. Westminster Abbey - Iconic Gothic church (~£29).</div>', unsafe_allow_html=True)
-        st.markdown('<div class="suggestion-box">4. Borough Market - Vegetarian food stalls like Ethiopian wraps (~£8–12).</div>', unsafe_allow_html=True)
-        st.markdown('<div class="suggestion-box">5. Covent Garden - Vegetarian dining options like The Barbary Next Door (~£10–15).</div>', unsafe_allow_html=True)
+        st.markdown('<div class="suggestion-box">4. Borough Market - Vegetarian food stalls like Ethiopian wraps (~£8-12).</div>', unsafe_allow_html=True)
+        st.markdown('<div class="suggestion-box">5. Covent Garden - Vegetarian dining options like The Barbary Next Door (~£10-15).</div>', unsafe_allow_html=True)
         st.markdown('<div class="suggestion-box">6. Thames River Walk - Scenic walk past landmarks (~4 miles).</div>', unsafe_allow_html=True)
-        st.markdown('<div class="suggestion-box">7. Camden Market - Vegetarian street food and history (~£5–10, ~3 miles).</div>', unsafe_allow_html=True)
+        st.markdown('<div class="suggestion-box">7. Camden Market - Vegetarian street food and history (~£5-10, ~3 miles).</div>', unsafe_allow_html=True)
         activities = [
             "British Museum", "Tower of London", "Westminster Abbey",
             "Borough Market", "Covent Garden",
@@ -285,15 +280,15 @@ elif st.session_state.stage == "activity_suggestions":
         ]
     else:  # Default to Paris if destination not recognized
         st.markdown('<div class="suggestion-box">1. Louvre Museum - Iconic art like the Mona Lisa (~€17).</div>', unsafe_allow_html=True)
-        st.markdown('<div class="suggestion-box">2. Musée d’Orsay - Impressionist masterpieces (~€14).</div>', unsafe_allow_html=True)
+        st.markdown('<div class="suggestion-box">2. Musée d'Orsay - Impressionist masterpieces (~€14).</div>', unsafe_allow_html=True)
         st.markdown('<div class="suggestion-box">3. Montmartre Art Walk - Historic artist district (~5 miles).</div>', unsafe_allow_html=True)
-        st.markdown('<div class="suggestion-box">4. Le Marais Food Stroll - Casual falafel and pastries (~€6–10).</div>', unsafe_allow_html=True)
-        st.markdown('<div class="suggestion-box">5. Musée de l’Orangerie - Monet’s Water Lilies (~€12).</div>', unsafe_allow_html=True)
+        st.markdown('<div class="suggestion-box">4. Le Marais Food Stroll - Casual falafel and pastries (~€6-10).</div>', unsafe_allow_html=True)
+        st.markdown('<div class="suggestion-box">5. Musée de l'Orangerie - Monet's Water Lilies (~€12).</div>', unsafe_allow_html=True)
         st.markdown('<div class="suggestion-box">6. Canal Saint-Martin Picnic - Local bites by the canal (~€10).</div>', unsafe_allow_html=True)
         st.markdown('<div class="suggestion-box">7. Street Art in Belleville - Offbeat murals (~4 miles).</div>', unsafe_allow_html=True)
         activities = [
-            "Louvre Museum", "Musée d’Orsay", "Montmartre Art Walk",
-            "Le Marais Food Stroll", "Musée de l’Orangerie",
+            "Louvre Museum", "Musée d'Orsay", "Montmartre Art Walk",
+            "Le Marais Food Stroll", "Musée de l'Orangerie",
             "Canal Saint-Martin Picnic", "Street Art in Belleville"
         ]
     
@@ -310,38 +305,38 @@ elif st.session_state.stage == "activity_suggestions":
 elif st.session_state.stage == "itinerary_generation":
     prefs = st.session_state.preferences
     st.markdown('<div class="section-header" id="step4">Step 4: Your Personalized Itinerary</div>', unsafe_allow_html=True)
-    st.write(f"Here’s your tailored 7-day {prefs.get('destination', 'Paris')} itinerary:")
+    st.write(f"Here's your tailored 7-day {prefs.get('destination', 'Paris')} itinerary:")
     
     # Dynamic itinerary based on destination
     if prefs.get("destination") == "Paris":
         itinerary = [
-            f'<div class="itinerary-card"><i class="fas fa-plane-arrival"></i> <strong>Day 1: June 1 – Arrival & Le Marais</strong><br>- Afternoon: Arrive, check into {prefs.get("accommodation", "budget-friendly central")} hotel. Le Marais Food Stroll (~2 miles).</div>',
-            f'<div class="itinerary-card"><i class="fas fa-palette"></i> <strong>Day 2: June 2 – Louvre</strong><br>- Morning: Louvre Museum (~€17, ~2 miles walking).</div>',
-            f'<div class="itinerary-card"><i class="fas fa-paint-brush"></i> <strong>Day 3: June 3 – Impressionist Art</strong><br>- Morning: Musée d’Orsay (~€14). Afternoon: Musée de l’Orangerie (~€12, ~2.5 miles total).</div>',
-            f'<div class="itinerary-card"><i class="fas fa-walking"></i> <strong>Day 4: June 4 – Montmartre</strong><br>- Morning: Montmartre Art Walk (~5 miles).</div>',
-            f'<div class="itinerary-card"><i class="fas fa-utensils"></i> <strong>Day 5: June 5 – Canal Saint-Martin</strong><br>- Morning: Canal Saint-Martin Picnic (~3 miles).</div>',
-            f'<div class="itinerary-card"><i class="fas fa-spray-can"></i> <strong>Day 6: June 6 – Belleville</strong><br>- Morning: Street Art in Belleville (~4 miles).</div>',
-            f'<div class="itinerary-card"><i class="fas fa-plane-departure"></i> <strong>Day 7: June 7 – Departure</strong><br>- Morning: Depart from {prefs.get("destination", "Paris")}.</div>',
+            f'<div class="itinerary-card"><i class="fas fa-plane-arrival"></i> <strong>Day 1: June 1 - Arrival & Le Marais</strong><br>- Afternoon: Arrive, check into {prefs.get("accommodation", "budget-friendly central")} hotel. Le Marais Food Stroll (~2 miles).</div>',
+            f'<div class="itinerary-card"><i class="fas fa-palette"></i> <strong>Day 2: June 2 - Louvre</strong><br>- Morning: Louvre Museum (~€17, ~2 miles walking).</div>',
+            f'<div class="itinerary-card"><i class="fas fa-paint-brush"></i> <strong>Day 3: June 3 - Impressionist Art</strong><br>- Morning: Musée d'Orsay (~€14). Afternoon: Musée de l'Orangerie (~€12, ~2.5 miles total).</div>',
+            f'<div class="itinerary-card"><i class="fas fa-walking"></i> <strong>Day 4: June 4 - Montmartre</strong><br>- Morning: Montmartre Art Walk (~5 miles).</div>',
+            f'<div class="itinerary-card"><i class="fas fa-utensils"></i> <strong>Day 5: June 5 - Canal Saint-Martin</strong><br>- Morning: Canal Saint-Martin Picnic (~3 miles).</div>',
+            f'<div class="itinerary-card"><i class="fas fa-spray-can"></i> <strong>Day 6: June 6 - Belleville</strong><br>- Morning: Street Art in Belleville (~4 miles).</div>',
+            f'<div class="itinerary-card"><i class="fas fa-plane-departure"></i> <strong>Day 7: June 7 - Departure</strong><br>- Morning: Depart from {prefs.get("destination", "Paris")}.</div>',
         ]
     elif prefs.get("destination") == "London":
         itinerary = [
-            f'<div class="itinerary-card"><i class="fas fa-plane-arrival"></i> <strong>Day 1: June 1 – Arrival & Covent Garden</strong><br>- Afternoon: Arrive, check into {prefs.get("accommodation", "budget-friendly central")} hotel. Covent Garden for vegetarian dining (~2 miles).</div>',
-            f'<div class="itinerary-card"><i class="fas fa-university"></i> <strong>Day 2: June 2 – British Museum</strong><br>- Morning: British Museum (Free entry, ~2 miles walking).</div>',
-            f'<div class="itinerary-card"><i class="fas fa-chess-rook"></i> <strong>Day 3: June 3 – Tower of London</strong><br>- Morning: Tower of London (~£30, ~2 miles walking).</div>',
-            f'<div class="itinerary-card"><i class="fas fa-church"></i> <strong>Day 4: June 4 – Westminster Abbey</strong><br>- Morning: Westminster Abbey (~£29, ~2 miles walking).</div>',
-            f'<div class="itinerary-card"><i class="fas fa-utensils"></i> <strong>Day 5: June 5 – Borough Market</strong><br>- Morning: Borough Market for vegetarian food (~3 miles).</div>',
-            f'<div class="itinerary-card"><i class="fas fa-walking"></i> <strong>Day 6: June 6 – Thames River Walk & Camden Market</strong><br>- Morning: Thames River Walk (~4 miles). Afternoon: Camden Market for vegetarian street food (~3 miles).</div>',
-            f'<div class="itinerary-card"><i class="fas fa-plane-departure"></i> <strong>Day 7: June 7 – Departure</strong><br>- Morning: Depart from {prefs.get("destination", "London")}.</div>',
+            f'<div class="itinerary-card"><i class="fas fa-plane-arrival"></i> <strong>Day 1: June 1 - Arrival & Covent Garden</strong><br>- Afternoon: Arrive, check into {prefs.get("accommodation", "budget-friendly central")} hotel. Covent Garden for vegetarian dining (~2 miles).</div>',
+            f'<div class="itinerary-card"><i class="fas fa-university"></i> <strong>Day 2: June 2 - British Museum</strong><br>- Morning: British Museum (Free entry, ~2 miles walking).</div>',
+            f'<div class="itinerary-card"><i class="fas fa-chess-rook"></i> <strong>Day 3: June 3 - Tower of London</strong><br>- Morning: Tower of London (~£30, ~2 miles walking).</div>',
+            f'<div class="itinerary-card"><i class="fas fa-church"></i> <strong>Day 4: June 4 - Westminster Abbey</strong><br>- Morning: Westminster Abbey (~£29, ~2 miles walking).</div>',
+            f'<div class="itinerary-card"><i class="fas fa-utensils"></i> <strong>Day 5: June 5 - Borough Market</strong><br>- Morning: Borough Market for vegetarian food (~3 miles).</div>',
+            f'<div class="itinerary-card"><i class="fas fa-walking"></i> <strong>Day 6: June 6 - Thames River Walk & Camden Market</strong><br>- Morning: Thames River Walk (~4 miles). Afternoon: Camden Market for vegetarian street food (~3 miles).</div>',
+            f'<div class="itinerary-card"><i class="fas fa-plane-departure"></i> <strong>Day 7: June 7 - Departure</strong><br>- Morning: Depart from {prefs.get("destination", "London")}.</div>',
         ]
     else:  # Default to Paris
         itinerary = [
-            f'<div class="itinerary-card"><i class="fas fa-plane-arrival"></i> <strong>Day 1: June 1 – Arrival & Le Marais</strong><br>- Afternoon: Arrive, check into {prefs.get("accommodation", "budget-friendly central")} hotel. Le Marais Food Stroll (~2 miles).</div>',
-            f'<div class="itinerary-card"><i class="fas fa-palette"></i> <strong>Day 2: June 2 – Louvre</strong><br>- Morning: Louvre Museum (~€17, ~2 miles walking).</div>',
-            f'<div class="itinerary-card"><i class="fas fa-paint-brush"></i> <strong>Day 3: June 3 – Impressionist Art</strong><br>- Morning: Musée d’Orsay (~€14). Afternoon: Musée de l’Orangerie (~€12, ~2.5 miles total).</div>',
-            f'<div class="itinerary-card"><i class="fas fa-walking"></i> <strong>Day 4: June 4 – Montmartre</strong><br>- Morning: Montmartre Art Walk (~5 miles).</div>',
-            f'<div class="itinerary-card"><i class="fas fa-utensils"></i> <strong>Day 5: June 5 – Canal Saint-Martin</strong><br>- Morning: Canal Saint-Martin Picnic (~3 miles).</div>',
-            f'<div class="itinerary-card"><i class="fas fa-spray-can"></i> <strong>Day 6: June 6 – Belleville</strong><br>- Morning: Street Art in Belleville (~4 miles).</div>',
-            f'<div class="itinerary-card"><i class="fas fa-plane-departure"></i> <strong>Day 7: June 7 – Departure</strong><br>- Morning: Depart from {prefs.get("destination", "Paris")}.</div>',
+            f'<div class="itinerary-card"><i class="fas fa-plane-arrival"></i> <strong>Day 1: June 1 - Arrival & Le Marais</strong><br>- Afternoon: Arrive, check into {prefs.get("accommodation", "budget-friendly central")} hotel. Le Marais Food Stroll (~2 miles).</div>',
+            f'<div class="itinerary-card"><i class="fas fa-palette"></i> <strong>Day 2: June 2 - Louvre</strong><br>- Morning: Louvre Museum (~€17, ~2 miles walking).</div>',
+            f'<div class="itinerary-card"><i class="fas fa-paint-brush"></i> <strong>Day 3: June 3 - Impressionist Art</strong><br>- Morning: Musée d'Orsay (~€14). Afternoon: Musée de l'Orangerie (~€12, ~2.5 miles total).</div>',
+            f'<div class="itinerary-card"><i class="fas fa-walking"></i> <strong>Day 4: June 4 - Montmartre</strong><br>- Morning: Montmartre Art Walk (~5 miles).</div>',
+            f'<div class="itinerary-card"><i class="fas fa-utensils"></i> <strong>Day 5: June 5 - Canal Saint-Martin</strong><br>- Morning: Canal Saint-Martin Picnic (~3 miles).</div>',
+            f'<div class="itinerary-card"><i class="fas fa-spray-can"></i> <strong>Day 6: June 6 - Belleville</strong><br>- Morning: Street Art in Belleville (~4 miles).</div>',
+            f'<div class="itinerary-card"><i class="fas fa-plane-departure"></i> <strong>Day 7: June 7 - Departure</strong><br>- Morning: Depart from {prefs.get("destination", "Paris")}.</div>',
         ]
     
     for day in itinerary:
