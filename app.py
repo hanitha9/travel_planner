@@ -345,6 +345,7 @@ DESTINATION_DATA = {
         "country": "Egypt", "cost_multiplier": 0.7
     }
 }
+
 # ======================
 # HELPER FUNCTIONS
 # ======================
@@ -472,7 +473,7 @@ def itinerary_page():
         st.markdown(f"""
             <div style="text-align: center; margin: 20px 0 30px; font-family: Montserrat; color: #4A6B8A;">
                 <b>Budget:</b> {prefs['budget'].capitalize()} • 
-                <b>Interests:</b> {', '.join([i.capitalize() for i in prefs['interests'])} • 
+                <b>Interests:</b> {', '.join([i.capitalize() for i in prefs['interests']])} • 
                 <b>From:</b> {prefs['start'] if prefs['start'] != 'Not specified' else 'Not specified'}
             </div>
         """, unsafe_allow_html=True)
