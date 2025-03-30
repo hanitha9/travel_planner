@@ -1,7 +1,7 @@
 import streamlit as st
 import re
 
-# Custom CSS for aesthetics
+# Custom CSS for aesthetics with sticky header
 st.markdown("""
     <style>
     .title {
@@ -10,6 +10,11 @@ st.markdown("""
         color: #FFFFFF;
         text-align: center;
         margin-bottom: 10px;
+        position: sticky;
+        top: 0;
+        background: linear-gradient(to bottom right, #87CEEB, #4682B4);
+        padding: 10px 0;
+        z-index: 1000;
     }
     .subtitle {
         font-size: 20px;
@@ -78,7 +83,7 @@ destination_images = {
     "Tokyo": "https://images.unsplash.com/photo-1542051841857-5f90071e7989?q=80&w=2070&auto=format&fit=crop"
 }
 
-# Header with Dynamic Image (repeated for visibility)
+# Header with Dynamic Image (Sticky Title)
 header_image = destination_images.get(st.session_state.preferences.get("destination", "Paris"), destination_images["Paris"])
 st.markdown('<div class="title">AI-Powered Travel Planner</div>', unsafe_allow_html=True)
 st.markdown('<div class="subtitle">Let’s craft your dream trip with a personalized itinerary!</div>', unsafe_allow_html=True)
@@ -97,8 +102,10 @@ if st.session_state.scroll_to:
             let element = document.getElementById("{st.session_state.scroll_to}");
             if (element) {{
                 element.scrollIntoView({{behavior: "smooth", block: "start"}});
+            }} else {{
+                console.log("Element {st.session_state.scroll_to} not found");
             }}
-        }}, 100);
+        }}, 500);
         </script>
     """, unsafe_allow_html=True)
     st.session_state.scroll_to = None
@@ -134,7 +141,7 @@ if st.session_state.stage == "input_refinement":
         
         st.session_state.preferences = prefs
         if not all(k in prefs for k in ["destination", "dates"]):
-            st.warning("Hmm, I need more info. Could you clarify your destination and travel dates?")
+            st.warning("Hmm, I need more info. Could you clarify your destination and dates?")
             with st.form(key="clarify_form"):
                 clarification = st.text_area("Clarify your destination and dates:", height=100)
                 clarify_button = st.form_submit_button(label="Submit Clarification")
@@ -238,7 +245,6 @@ elif st.session_state.stage == "activity_suggestions":
 elif st.session_state.stage == "itinerary_generation":
     prefs = st.session_state.preferences
     st.markdown('<div class="section-header" id="step4">Step 4: Your Personalized Itinerary</div>', unsafe_allow_html=True)
-    # Move Bon Voyage image above itinerary
     st.image(destination_images.get(prefs.get("destination", "Paris"), destination_images["Paris"]), caption="Bon Voyage!", use_container_width=True)
     st.write(f"Here’s your tailored 7-day {prefs.get('destination', 'Paris')} itinerary:")
     itinerary = [
