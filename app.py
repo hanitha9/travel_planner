@@ -7,7 +7,7 @@ st.markdown("""
     .title {
         font-size: 40px;
         font-weight: bold;
-        color: #FFFACD; /* Lemon Chiffon for better contrast */
+        color: #00BFFF; /* Deep Sky Blue for bright title */
         text-align: center;
         margin-bottom: 10px;
     }
@@ -56,14 +56,12 @@ st.markdown("""
     }
     .image-container {
         position: relative;
-        width: 50%;
-        float: right;
-        margin-left: 20px;
-        margin-bottom: 20px;
+        width: 100%;
         height: 300px;
         background-size: cover;
         background-position: center;
         border-radius: 10px;
+        margin-bottom: 20px;
     }
     .image-overlay {
         position: absolute;
@@ -162,7 +160,7 @@ if st.session_state.stage == "input_refinement":
         
         st.session_state.preferences = prefs
         if not all(k in prefs for k in ["destination", "dates"]):
-            st.warning("Hmm, I need more info. Could you clarify your destination and travel dates?")
+            st.warning("Hmm, I need more info. Could you clarify your destination and dates?")
             with st.form(key="clarify_form"):
                 clarification = st.text_area("Clarify your destination and dates:", height=100)
                 clarify_button = st.form_submit_button(label="Submit Clarification")
@@ -192,7 +190,7 @@ elif st.session_state.stage == "refine_preferences":
     prefs = st.session_state.preferences
     interests_str = ", ".join(prefs.get("interests", ["art", "food"]))
     
-    # Image as background on the right
+    # Image above the refinement section
     st.markdown(f"""
         <div class="image-container" style="background-image: url('{destination_images.get(prefs.get('destination', 'Paris'), destination_images['Paris'])}');">
             <div class="image-overlay">{prefs.get('destination', 'Paris')} Awaits!</div>
@@ -247,7 +245,7 @@ elif st.session_state.stage == "activity_suggestions":
     prefs = st.session_state.preferences
     st.markdown('<div class="section-header" id="step3">Step 3: Explore Activity Suggestions</div>', unsafe_allow_html=True)
     
-    # Image as background on the right
+    # Image above the suggestions section
     st.markdown(f"""
         <div class="image-container" style="background-image: url('{destination_images.get(prefs.get('destination', 'Paris'), destination_images['Paris'])}');">
             <div class="image-overlay">Discover {prefs.get('destination', 'Paris')}</div>
