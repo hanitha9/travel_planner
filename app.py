@@ -1,27 +1,29 @@
 import streamlit as st
 import re
 
-# Custom CSS for styling
+# Custom CSS for enhanced aesthetics
 st.markdown("""
     <style>
     .title {
-        font-size: 36px;
+        font-size: 40px;
         font-weight: bold;
-        color: #2E8B57;
+        color: #FFFFFF;
         text-align: center;
+        text-shadow: 2px 2px 4px #333333;
         margin-bottom: 10px;
     }
     .subtitle {
-        font-size: 18px;
-        color: #555555;
+        font-size: 20px;
+        color: #F0F0F0;
         text-align: center;
         margin-bottom: 20px;
     }
     .section-header {
-        font-size: 24px;
+        font-size: 26px;
         font-weight: bold;
-        color: #4682B4;
+        color: #FFD700;
         margin-top: 20px;
+        text-shadow: 1px 1px 2px #555555;
     }
     .debug {
         font-size: 12px;
@@ -31,24 +33,35 @@ st.markdown("""
         border-radius: 5px;
     }
     .suggestion-box {
-        background-color: #F5F5F5;
+        background-color: #FFFFFF;
         padding: 15px;
         border-radius: 10px;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
         margin-bottom: 10px;
     }
-    .itinerary-day {
-        background-color: #E6F3FF;
-        padding: 10px;
-        border-radius: 5px;
+    .itinerary-card {
+        background-color: #FFF8E1;
+        padding: 15px;
+        border-radius: 10px;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
         margin-bottom: 10px;
+        transition: transform 0.2s;
+    }
+    .itinerary-card:hover {
+        transform: scale(1.02);
     }
     .question {
         font-size: 16px;
         font-weight: bold;
-        color: #333333;
+        color: #FFFFFF;
         margin-bottom: 5px;
+        text-shadow: 1px 1px 2px #333333;
+    }
+    body {
+        background: linear-gradient(to bottom right, #87CEEB, #4682B4);
     }
     </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 """, unsafe_allow_html=True)
 
 # Initialize session state
@@ -59,10 +72,20 @@ if "preferences" not in st.session_state:
 if "activities" not in st.session_state:
     st.session_state.activities = []
 
-# UI Header with Image
+# Dynamic background image based on destination
+destination_images = {
+    "Paris": "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?q=80&w=2073&auto=format&fit=crop",
+    "London": "https://images.unsplash.com/photo-1529655682523-44aca611b2d0?q=80&w=2070&auto=format&fit=crop",
+    "Tokyo": "https://images.unsplash.com/photo-1542051841857-5f90071e7989?q=80&w=2070&auto=format&fit=crop"
+}
+
+# Default image if no destination yet
+header_image = destination_images.get(st.session_state.preferences.get("destination", "Paris"), destination_images["Paris"])
+
+# UI Header with Dynamic Image
 st.markdown('<div class="title">AI-Powered Travel Planner</div>', unsafe_allow_html=True)
 st.markdown('<div class="subtitle">Let’s craft your dream trip with a personalized itinerary!</div>', unsafe_allow_html=True)
-st.image("https://images.unsplash.com/photo-1502602898657-3e91760cbb34?q=80&w=2073&auto=format&fit=crop", caption="Explore Your Next Adventure", use_container_width=True)
+st.image(header_image, caption="Explore Your Next Adventure", use_container_width=True)
 
 # Debug: Show current stage and preferences
 with st.expander("Debug Info", expanded=False):
@@ -135,7 +158,7 @@ elif st.session_state.stage == "refine_preferences":
     - **Budget:** {prefs.get('budget', 'Moderate')}
     - **Preferences:** {interests_str}
     """)
-    st.image("https://images.unsplash.com/photo-1499856871958-5b9627545d1a?q=80&w=2020&auto=format&fit=crop", caption="Paris Awaits!", use_container_width=True)
+    st.image(destination_images.get(prefs.get("destination", "Paris"), destination_images["Paris"]), caption=f"{prefs.get('destination', 'Paris')} Awaits!", use_container_width=True)
     
     st.markdown("**A few quick questions to tailor your trip:**", unsafe_allow_html=True)
     st.markdown(f'<div class="question">1. For interests like {interests_str}, any specifics (e.g., famous museums vs. hidden galleries for art)?</div>', unsafe_allow_html=True)
@@ -148,7 +171,6 @@ elif st.session_state.stage == "refine_preferences":
         confirm_button = st.form_submit_button(label="Confirm Details")
     
     if confirm_button and refined_input:
-        # Flexible parsing for freeform input
         refined_text = refined_input.lower()
         specific_interests = "famous museums" if "famous" in refined_text else "hidden galleries" if "hidden" in refined_text or "offbeat" in refined_text else "famous museums"
         dietary = "none" if "none" in refined_text or "no dietary" in refined_text else "vegetarian" if "vegetarian" in refined_text else "none"
@@ -173,6 +195,7 @@ elif st.session_state.stage == "refine_preferences":
 
 # Stage 3: Activity Suggestions
 elif st.session_state.stage == "activity_suggestions":
+    prefs = st.session_state.preferences
     st.markdown('<div class="section-header">Step 3: Explore Activity Suggestions</div>', unsafe_allow_html=True)
     st.write("Based on your preferences, here are some exciting activities:")
     st.markdown('<div class="suggestion-box">1. Louvre Museum - Iconic art like the Mona Lisa (~€17).</div>', unsafe_allow_html=True)
@@ -182,7 +205,7 @@ elif st.session_state.stage == "activity_suggestions":
     st.markdown('<div class="suggestion-box">5. Musée de l’Orangerie - Monet’s Water Lilies (~€12).</div>', unsafe_allow_html=True)
     st.markdown('<div class="suggestion-box">6. Canal Saint-Martin Picnic - Local bites by the canal (~€10).</div>', unsafe_allow_html=True)
     st.markdown('<div class="suggestion-box">7. Street Art in Belleville - Offbeat murals (~4 miles).</div>', unsafe_allow_html=True)
-    st.image("https://images.unsplash.com/photo-1505205296326-2178af1b47bf?q=80&w=2070&auto=format&fit=crop", caption="Art and Culture in Paris", use_container_width=True)
+    st.image(destination_images.get(prefs.get("destination", "Paris"), destination_images["Paris"]), caption=f"Discover {prefs.get('destination', 'Paris')}", use_container_width=True)
     
     with st.form(key="approve_activities_form"):
         approve_button = st.form_submit_button(label="Approve Activities", help="Ready for your itinerary?")
@@ -198,21 +221,21 @@ elif st.session_state.stage == "activity_suggestions":
 
 # Stage 4: Itinerary Generation
 elif st.session_state.stage == "itinerary_generation":
-    st.markdown('<div class="section-header">Step 4: Your Personalized Itinerary</div>', unsafe_allow_html=True)
     prefs = st.session_state.preferences
+    st.markdown('<div class="section-header">Step 4: Your Personalized Itinerary</div>', unsafe_allow_html=True)
     st.write(f"Here’s your tailored 7-day {prefs.get('destination', 'Paris')} itinerary:")
     itinerary = [
-        f'<div class="itinerary-day"><strong>Day 1: June 1 – Arrival & Le Marais</strong><br>- Afternoon: Arrive, check into {prefs.get("accommodation", "budget-friendly central")} hotel. Le Marais Food Stroll (~2 miles).</div>',
-        f'<div class="itinerary-day"><strong>Day 2: June 2 – Louvre</strong><br>- Morning: Louvre Museum (~€17, ~2 miles walking).</div>',
-        f'<div class="itinerary-day"><strong>Day 3: June 3 – Impressionist Art</strong><br>- Morning: Musée d’Orsay (~€14). Afternoon: Musée de l’Orangerie (~€12, ~2.5 miles total).</div>',
-        f'<div class="itinerary-day"><strong>Day 4: June 4 – Montmartre</strong><br>- Morning: Montmartre Art Walk (~5 miles).</div>',
-        f'<div class="itinerary-day"><strong>Day 5: June 5 – Canal Saint-Martin</strong><br>- Morning: Canal Saint-Martin Picnic (~3 miles).</div>',
-        f'<div class="itinerary-day"><strong>Day 6: June 6 – Belleville</strong><br>- Morning: Street Art in Belleville (~4 miles).</div>',
-        f'<div class="itinerary-day"><strong>Day 7: June 7 – Departure</strong><br>- Morning: Depart from {prefs.get("destination", "Paris")}.</div>',
+        f'<div class="itinerary-card"><i class="fas fa-plane-arrival"></i> <strong>Day 1: June 1 – Arrival & Le Marais</strong><br>- Afternoon: Arrive, check into {prefs.get("accommodation", "budget-friendly central")} hotel. Le Marais Food Stroll (~2 miles).</div>',
+        f'<div class="itinerary-card"><i class="fas fa-palette"></i> <strong>Day 2: June 2 – Louvre</strong><br>- Morning: Louvre Museum (~€17, ~2 miles walking).</div>',
+        f'<div class="itinerary-card"><i class="fas fa-paint-brush"></i> <strong>Day 3: June 3 – Impressionist Art</strong><br>- Morning: Musée d’Orsay (~€14). Afternoon: Musée de l’Orangerie (~€12, ~2.5 miles total).</div>',
+        f'<div class="itinerary-card"><i class="fas fa-walking"></i> <strong>Day 4: June 4 – Montmartre</strong><br>- Morning: Montmartre Art Walk (~5 miles).</div>',
+        f'<div class="itinerary-card"><i class="fas fa-utensils"></i> <strong>Day 5: June 5 – Canal Saint-Martin</strong><br>- Morning: Canal Saint-Martin Picnic (~3 miles).</div>',
+        f'<div class="itinerary-card"><i class="fas fa-spray-can"></i> <strong>Day 6: June 6 – Belleville</strong><br>- Morning: Street Art in Belleville (~4 miles).</div>',
+        f'<div class="itinerary-card"><i class="fas fa-plane-departure"></i> <strong>Day 7: June 7 – Departure</strong><br>- Morning: Depart from {prefs.get("destination", "Paris")}.</div>',
     ]
     for day in itinerary:
         st.markdown(day, unsafe_allow_html=True)
-    st.image("https://images.unsplash.com/photo-1491438590914-1f1f98f6c0b5?q=80&w=2070&auto=format&fit=crop", caption="Bon Voyage!", use_container_width=True)
+    st.image(destination_images.get(prefs.get("destination", "Paris"), destination_images["Paris"]), caption="Bon Voyage!", use_container_width=True)
     
     with st.form(key="start_over_form"):
         start_over_button = st.form_submit_button(label="Start Over", help="Plan another trip!")
