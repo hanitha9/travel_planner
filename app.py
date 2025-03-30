@@ -16,12 +16,12 @@ if "activities" not in st.session_state:
 # CORE FUNCTIONS
 # ======================
 def parse_dates(text):
-    """Enhanced date parsing that handles multiple formats"""
+    """Enhanced date parsing for multiple formats"""
     text_lower = text.lower()
     today = datetime.now()
     
-    # Specific date ranges (MM/DD/YYYY - MM/DD/YYYY)
-    date_range = re.search(r"(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})\s*[-to]+\s*(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})", text_lower)
+    # Specific date ranges (e.g., June 1–7, 2025)
+    date_range = re.search(r"(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})\s*[-–to]+\s*(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})", text_lower)
     if date_range:
         try:
             start = datetime.strptime(f"{date_range.group(1)}/{date_range.group(2)}/{date_range.group(3)}", "%m/%d/%Y")
@@ -36,8 +36,8 @@ def parse_dates(text):
         except:
             pass
     
-    # Month Day - Day, Year (Jun 10-15, 2023)
-    month_range = re.search(r"(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+(\d{1,2})\s*[-]\s*(\d{1,2}),?\s+(\d{4})", text_lower)
+    # Month Day - Day, Year (e.g., Jun 10-15, 2023)
+    month_range = re.search(r"(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+(\d{1,2})\s*[-–]\s*(\d{1,2}),?\s+(\d{4})", text_lower)
     if month_range:
         try:
             month = month_range.group(1)[:3].title()
@@ -56,46 +56,7 @@ def parse_dates(text):
         except:
             pass
     
-    # Duration phrases (5 days, 1 week, weekend)
-    duration_map = [
-        ("weekend", 2),
-        ("long weekend", 3),
-        ("one week|1 week|7 days", 7),
-        ("two weeks|2 weeks|14 days", 14),
-        ("month|30 days", 30)
-    ]
-    for pattern, days in duration_map:
-        if re.search(pattern, text_lower):
-            end_date = today + timedelta(days=days-1)
-            return {
-                "dates": f"{today.strftime('%b %d')} - {end_date.strftime('%b %d, %Y')} ({days} days)",
-                "duration": days,
-                "start_date": today,
-                "end_date": end_date
-            }
-    
-    # Specific single dates with duration
-    single_date = re.search(r"(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+(\d{1,2})\s+(?:for|on)\s+(\d+)\s+(day|week)s?", text_lower)
-    if single_date:
-        try:
-            month = single_date.group(1)[:3].title()
-            day = int(single_date.group(2))
-            duration = int(single_date.group(3))
-            if single_date.group(4) == "week":
-                duration *= 7
-            year = today.year
-            start_date = datetime.strptime(f"{month} {day} {year}", "%b %d %Y")
-            end_date = start_date + timedelta(days=duration-1)
-            return {
-                "dates": f"{start_date.strftime('%b %d, %Y')} - {end_date.strftime('%b %d, %Y')}",
-                "duration": duration,
-                "start_date": start_date,
-                "end_date": end_date
-            }
-        except:
-            pass
-    
-    # Fallback - assume 7 day trip starting today
+    # Fallback: 7-day trip starting today
     end_date = today + timedelta(days=6)
     return {
         "dates": f"{today.strftime('%b %d')} - {end_date.strftime('%b %d, %Y')} (7 days)",
@@ -105,7 +66,7 @@ def parse_dates(text):
     }
 
 def parse_preferences(user_input):
-    """Parse all user preferences from input text"""
+    """Parse user preferences from input text"""
     prefs = {}
     text_lower = user_input.lower()
     
@@ -115,28 +76,27 @@ def parse_preferences(user_input):
             prefs["destination"] = city
             break
     if "destination" not in prefs:
-        prefs["destination"] = random.choice(list(DESTINATION_DATA.keys()))
-        prefs["auto_selected"] = True
+        prefs["destination"] = "Paris"  # Default
     
     # Dates and Duration
     date_info = parse_dates(user_input)
     prefs.update(date_info)
     
     # Budget
-    if any(word in text_lower for word in ["luxury", "high-end", "expensive", "premium"]):
+    if any(word in text_lower for word in ["luxury", "high-end", "expensive"]):
         prefs["budget"] = "luxury"
-    elif any(word in text_lower for word in ["budget", "cheap", "affordable", "economy"]):
+    elif any(word in text_lower for word in ["budget", "cheap", "affordable"]):
         prefs["budget"] = "budget"
     else:
         prefs["budget"] = "moderate"
     
     # Interests
     interest_map = {
-        "art": ["art", "museum", "gallery", "painting"],
+        "art": ["art", "museum", "gallery"],
         "food": ["food", "restaurant", "dining", "cuisine"],
         "history": ["history", "historical", "monument"],
         "nature": ["nature", "park", "hike", "outdoor"],
-        "shopping": ["shop", "mall", "market", "boutique"],
+        "shopping": ["shop", "mall", "market"],
         "adventure": ["adventure", "hiking", "trek"],
         "culture": ["culture", "local", "traditional"],
         "beach": ["beach", "coast", "shore"]
@@ -144,16 +104,28 @@ def parse_preferences(user_input):
     prefs["interests"] = [
         interest for interest, keywords in interest_map.items()
         if any(keyword in text_lower for keyword in keywords)
-    ] or ["culture", "food"]  # Default interests
+    ] or ["culture"]  # Default
     
     # Origin
     origin_match = re.search(r"(from|flying from|departing from)\s+([a-zA-Z\s]+)", text_lower)
     prefs["start"] = origin_match.group(2).strip().title() if origin_match else "Not specified"
     
+    # Additional preferences (default values)
+    prefs["dietary"] = "none"
+    prefs["mobility"] = 5  # Miles per day
+    prefs["accommodation"] = "mid-range"
+    
     return prefs
 
+# Mock web search function (replace with real API if available)
+def search_activities(destination, interest):
+    """Mock web search for activities"""
+    if destination in DESTINATION_DATA and interest in DESTINATION_DATA[destination]["activities"]:
+        return DESTINATION_DATA[destination]["activities"][interest]
+    return [f"{interest.capitalize()} activity in {destination}"]
+
 # ======================
-# DESTINATION DATABASE
+# DESTINATION DATABASE (Subset for brevity)
 # ======================
 DESTINATION_DATA = {
     # Europe (8 destinations)
@@ -395,7 +367,6 @@ DESTINATION_DATA = {
         "country": "Egypt", "cost_multiplier": 0.7
     }
 }
-
 # ======================
 # MAIN APP
 # ======================
@@ -407,7 +378,7 @@ def main():
         with st.form("trip_input"):
             st.subheader("Plan Your Dream Trip")
             user_input = st.text_area(
-                "Describe your trip (destination, dates, interests, budget):",
+                "Describe your trip (e.g., destination, dates, budget, interests):",
                 value="Paris from New York, June 1–7, 2025, moderate budget, art and food",
                 height=150
             )
@@ -418,7 +389,7 @@ def main():
                     st.session_state.stage = "refine_preferences"
                     st.rerun()
                 except Exception as e:
-                    st.error(f"Error parsing your input: {str(e)}")
+                    st.error(f"Error parsing input: {str(e)}")
 
     # Stage 2: Preference Refinement
     elif st.session_state.stage == "refine_preferences":
@@ -428,13 +399,12 @@ def main():
         
         with st.form("preference_refinement"):
             # Destination
-            current_dest = prefs.get("destination", "")
             dest_options = sorted(list(DESTINATION_DATA.keys()))
-            current_dest_idx = dest_options.index(current_dest) if current_dest in dest_options else 0
+            current_dest = prefs.get("destination", "Paris")
             new_dest = st.selectbox(
                 "Destination:",
                 dest_options,
-                index=current_dest_idx
+                index=dest_options.index(current_dest) if current_dest in dest_options else 0
             )
             
             # Origin
@@ -456,7 +426,6 @@ def main():
                     "Short trip (4-5 days)": 5,
                     "One week (7 days)": 7,
                     "Two weeks (14 days)": 14,
-                    "Month-long (30 days)": 30,
                     "Custom duration": "custom"
                 }
                 current_duration = prefs.get("duration", 7)
@@ -467,7 +436,6 @@ def main():
                         current_duration if current_duration in duration_options.values() else 7
                     )
                 )
-                
                 if new_duration == "Custom duration":
                     custom_days = st.number_input(
                         "Enter number of days:",
@@ -477,133 +445,160 @@ def main():
                     )
             
             # Budget
-            budget_map = {"luxury": "Luxury", "moderate": "Moderate", "budget": "Budget"}
-            current_budget = budget_map.get(prefs.get("budget", "moderate"), "Moderate")
+            budget_options = ["Luxury", "Moderate", "Budget"]
+            current_budget = prefs.get("budget", "moderate").capitalize()
             new_budget = st.selectbox(
                 "Budget Level:",
-                ["Luxury", "Moderate", "Budget"],
-                index=["Luxury", "Moderate", "Budget"].index(current_budget)
+                budget_options,
+                index=budget_options.index(current_budget)
             )
             
             # Interests
             interest_options = sorted(["Adventure", "Art", "Beach", "Culture", "Food", "History", "Nature", "Shopping"])
-            current_interests = [i.capitalize() for i in prefs.get("interests", ["culture", "food"])]
+            current_interests = [i.capitalize() for i in prefs.get("interests", ["culture"])]
             new_interests = st.multiselect(
                 "Your Interests:",
                 interest_options,
                 default=current_interests
             )
             
-            if st.form_submit_button("Create My Itinerary"):
-                # Calculate final duration
-                final_duration = custom_days if new_duration == "Custom duration" else duration_options[new_duration]
-                
-                # Update preferences
-                st.session_state.preferences = {
-                    "destination": new_dest,
-                    "start": new_start,
-                    "dates": new_dates,
-                    "duration": final_duration,
-                    "budget": new_budget.lower(),
-                    "interests": [i.lower() for i in new_interests],
-                    "start_date": prefs.get("start_date", datetime.now()),
-                    "end_date": prefs.get("start_date", datetime.now()) + timedelta(days=final_duration-1),
-                    "destination_data": DESTINATION_DATA.get(new_dest)
-                }
-                st.session_state.stage = "itinerary_display"
-                st.rerun()
+            # Additional Preferences
+            new_dietary = st.selectbox(
+                "Dietary Preference:",
+                ["None", "Vegetarian", "Vegan"],
+                index=["None", "Vegetarian", "Vegan"].index(prefs.get("dietary", "none").capitalize())
+            )
+            new_mobility = st.slider(
+                "Walking Tolerance (miles/day):",
+                1, 10, prefs.get("mobility", 5)
+            )
+            new_accommodation = st.selectbox(
+                "Accommodation Preference:",
+                ["Budget", "Mid-range", "Luxury"],
+                index=["Budget", "Mid-range", "Luxury"].index(prefs.get("accommodation", "mid-range").capitalize())
+            )
+            
+            if st.form_submit_button("Confirm Preferences"):
+                if not new_interests:
+                    st.error("Please select at least one interest.")
+                else:
+                    final_duration = custom_days if new_duration == "Custom duration" else duration_options[new_duration]
+                    st.session_state.preferences = {
+                        "destination": new_dest,
+                        "start": new_start,
+                        "dates": new_dates,
+                        "duration": final_duration,
+                        "budget": new_budget.lower(),
+                        "interests": [i.lower() for i in new_interests],
+                        "dietary": new_dietary.lower(),
+                        "mobility": new_mobility,
+                        "accommodation": new_accommodation.lower(),
+                        "start_date": prefs.get("start_date", datetime.now()),
+                        "end_date": prefs.get("start_date", datetime.now()) + timedelta(days=final_duration-1),
+                        "destination_data": DESTINATION_DATA.get(new_dest)
+                    }
+                    st.session_state.stage = "activity_suggestions"
+                    st.rerun()
 
-    # Stage 3: Itinerary Display
+    # Stage 3: Activity Suggestions
+    elif st.session_state.stage == "activity_suggestions":
+        prefs = st.session_state.preferences
+        st.subheader(f"Activity Suggestions for {prefs['destination']}")
+        
+        # Generate suggestions
+        suggestions = []
+        for interest in prefs["interests"]:
+            activities = search_activities(prefs["destination"], interest)
+            suggestions.extend(activities[:3])  # Limit to 3 per interest
+        
+        with st.form("activity_selection"):
+            selected_activities = st.multiselect(
+                "Choose activities you like:",
+                suggestions,
+                default=suggestions[:min(3 * len(prefs["interests"]), len(suggestions))]
+            )
+            if st.form_submit_button("Generate Itinerary"):
+                if not selected_activities:
+                    st.error("Please select at least one activity.")
+                else:
+                    st.session_state.activities = selected_activities
+                    st.session_state.stage = "itinerary_display"
+                    st.rerun()
+
+    # Stage 4: Itinerary Display
     elif st.session_state.stage == "itinerary_display":
         prefs = st.session_state.preferences
-        dest = prefs.get("destination", "Your Destination")
-        duration = prefs.get("duration", 7)
-        dest_data = prefs.get("destination_data")
+        dest = prefs["destination"]
+        duration = prefs["duration"]
+        dest_data = prefs["destination_data"]
         
         st.header(f"✈️ Your {duration}-Day Trip to {dest}")
-        st.subheader(f"📅 {prefs.get('dates', '')}")
+        st.subheader(f"📅 {prefs['dates']}")
         
         # Display destination info
         if dest_data and "image" in dest_data:
             st.image(dest_data["image"], use_container_width=True)
-        st.markdown(f"**{dest}, {dest_data.get('country', '') if dest_data else ''}**")
-        
-        if prefs.get("start", "Not specified") != "Not specified":
+        st.markdown(f"**{dest}, {dest_data.get('country', '')}**")
+        if prefs["start"] != "Not specified":
             st.markdown(f"*Traveling from: {prefs['start']}*")
         
-        # Display full itinerary without expanders
+        # Full itinerary
         st.markdown("---")
         st.subheader("Your Complete Itinerary")
-        
-        # Track used activities to avoid repetition
-        used_activities = defaultdict(list)
+        used_activities = set()
+        selected_activities = st.session_state.activities
         
         for day in range(1, duration + 1):
             current_date = (prefs["start_date"] + timedelta(days=day-1)).strftime("%A, %b %d")
             st.markdown(f"#### Day {day}: {current_date}")
             
-            # Get available activities for interests
-            available_activities = []
-            for interest in prefs["interests"]:
-                if dest_data and interest in dest_data["activities"]:
-                    available_activities.extend([
-                        act for act in dest_data["activities"][interest] 
-                        if act not in used_activities[interest]
-                    ])
+            # Morning
+            if day <= len(selected_activities):
+                activity = selected_activities[day-1]
+                st.markdown(f"- **Morning (9AM-12PM):** {activity}")
+                used_activities.add(activity)
+            else:
+                st.markdown("- **Morning (9AM-12PM):** Free time or local exploration")
             
-            # Morning activity (only on odd days for art)
-            if "art" in prefs["interests"] and day % 2 == 1 and available_activities:
-                art_activities = [
-                    act for act in available_activities 
-                    if act in dest_data["activities"].get("art", [])
-                ]
-                if art_activities:
-                    activity = random.choice(art_activities)
-                    st.markdown(f"- **Morning (9AM-12PM):** {activity}")
-                    used_activities["art"].append(activity)
+            # Lunch with dietary consideration
+            lunch_base = random.choice(["Local cafe", "Recommended restaurant", "Street food"])
+            dietary_note = f" ({prefs['dietary']} options)" if prefs['dietary'] != "none" else ""
+            st.markdown(f"- **Lunch (12PM-1PM):** {lunch_base}{dietary_note}")
             
-            # Lunch
-            lunch_options = ["Local cafe", "Recommended restaurant", "Traditional eatery"]
-            st.markdown(f"- **Lunch (12PM-1PM):** {random.choice(lunch_options)}")
+            # Afternoon (alternate activities if available)
+            if day + len(selected_activities) <= len(selected_activities) * 2:
+                alt_activity = random.choice([a for a in selected_activities if a not in used_activities])
+                st.markdown(f"- **Afternoon (2PM-5PM):** {alt_activity}")
+                used_activities.add(alt_activity)
+            else:
+                st.markdown("- **Afternoon (2PM-5PM):** Relax or explore nearby")
             
-            # Afternoon activity (only on even days for food)
-            if "food" in prefs["interests"] and day % 2 == 0 and available_activities:
-                food_activities = [
-                    act for act in available_activities 
-                    if act in dest_data["activities"].get("food", [])
-                ]
-                if food_activities:
-                    activity = random.choice(food_activities)
-                    st.markdown(f"- **Afternoon (2PM-5PM):** {activity}")
-                    used_activities["food"].append(activity)
-            
-            # Evening activity (skip first day)
-            if day > 1 and "culture" in prefs["interests"] and available_activities:
-                culture_activities = [
-                    act for act in available_activities 
-                    if act in dest_data["activities"].get("culture", [])
-                ]
-                if culture_activities:
-                    activity = random.choice(culture_activities)
-                    st.markdown(f"- **Evening (7PM-10PM):** {activity}")
-                    used_activities["culture"].append(activity)
+            # Evening (skip first day)
+            if day > 1 and len(used_activities) < len(selected_activities):
+                evening_activity = random.choice([a for a in selected_activities if a not in used_activities])
+                st.markdown(f"- **Evening (7PM-10PM):** {evening_activity}")
+                used_activities.add(evening_activity)
             
             st.markdown("---")
         
         # Trip Summary
         st.markdown("---")
         st.subheader("Trip Summary")
-        cols = st.columns(3)
+        cols = st.columns(4)
         cols[0].metric("Destination", dest)
         cols[1].metric("Duration", f"{duration} days")
-        cols[2].metric("Budget Level", prefs.get("budget", "moderate").title())
+        cols[2].metric("Budget", prefs["budget"].capitalize())
+        cols[3].metric("Walking", f"{prefs['mobility']} miles/day")
         
-        st.markdown(f"**Travel Dates:** {prefs.get('dates', 'Not specified')}")
-        st.markdown(f"**Interests:** {', '.join([i.capitalize() for i in prefs.get('interests', [])])}")
+        st.markdown(f"**Travel Dates:** {prefs['dates']}")
+        st.markdown(f"**Interests:** {', '.join([i.capitalize() for i in prefs['interests']])}")
+        st.markdown(f"**Dietary:** {prefs['dietary'].capitalize()}")
+        st.markdown(f"**Accommodation:** {prefs['accommodation'].capitalize()}")
         
         if st.button("Plan Another Trip"):
             st.session_state.stage = "input_refinement"
             st.session_state.preferences = {}
+            st.session_state.activities = []
             st.rerun()
 
 if __name__ == "__main__":
