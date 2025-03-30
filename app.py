@@ -1,7 +1,7 @@
 import streamlit as st
 import re
 
-# Custom CSS for aesthetics without shadows
+# Custom CSS for aesthetics
 st.markdown("""
     <style>
     .title {
@@ -78,7 +78,7 @@ destination_images = {
     "Tokyo": "https://images.unsplash.com/photo-1542051841857-5f90071e7989?q=80&w=2070&auto=format&fit=crop"
 }
 
-# Header with Dynamic Image
+# Header with Dynamic Image (repeated for visibility)
 header_image = destination_images.get(st.session_state.preferences.get("destination", "Paris"), destination_images["Paris"])
 st.markdown('<div class="title">AI-Powered Travel Planner</div>', unsafe_allow_html=True)
 st.markdown('<div class="subtitle">Let’s craft your dream trip with a personalized itinerary!</div>', unsafe_allow_html=True)
@@ -93,7 +93,12 @@ with st.expander("Debug Info", expanded=False):
 if st.session_state.scroll_to:
     st.markdown(f"""
         <script>
-        document.getElementById("{st.session_state.scroll_to}").scrollIntoView({{behavior: "smooth"}});
+        setTimeout(() => {{
+            let element = document.getElementById("{st.session_state.scroll_to}");
+            if (element) {{
+                element.scrollIntoView({{behavior: "smooth", block: "start"}});
+            }}
+        }}, 100);
         </script>
     """, unsafe_allow_html=True)
     st.session_state.scroll_to = None
@@ -233,6 +238,8 @@ elif st.session_state.stage == "activity_suggestions":
 elif st.session_state.stage == "itinerary_generation":
     prefs = st.session_state.preferences
     st.markdown('<div class="section-header" id="step4">Step 4: Your Personalized Itinerary</div>', unsafe_allow_html=True)
+    # Move Bon Voyage image above itinerary
+    st.image(destination_images.get(prefs.get("destination", "Paris"), destination_images["Paris"]), caption="Bon Voyage!", use_container_width=True)
     st.write(f"Here’s your tailored 7-day {prefs.get('destination', 'Paris')} itinerary:")
     itinerary = [
         f'<div class="itinerary-card"><i class="fas fa-plane-arrival"></i> <strong>Day 1: June 1 – Arrival & Le Marais</strong><br>- Afternoon: Arrive, check into {prefs.get("accommodation", "budget-friendly central")} hotel. Le Marais Food Stroll (~2 miles).</div>',
@@ -245,7 +252,6 @@ elif st.session_state.stage == "itinerary_generation":
     ]
     for day in itinerary:
         st.markdown(day, unsafe_allow_html=True)
-    st.image(destination_images.get(prefs.get("destination", "Paris"), destination_images["Paris"]), caption="Bon Voyage!", use_container_width=True)
     
     # Pop-up prompt
     st.markdown("""
