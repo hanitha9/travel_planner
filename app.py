@@ -4,9 +4,71 @@ from datetime import datetime, timedelta
 import random
 from collections import defaultdict
 
-# Custom CSS for beautiful, classic styling
+# Custom CSS for classic styling across pages
 st.markdown("""
     <style>
+    /* General page styling */
+    .main {
+        background-color: #FDF5E6;
+        padding: 20px;
+        border-radius: 10px;
+    }
+    /* Input page styling */
+    .input-header {
+        font-family: 'Georgia', serif;
+        font-size: 36px;
+        font-weight: bold;
+        color: #5C4033;
+        text-align: center;
+        margin-bottom: 20px;
+        border-bottom: 3px double #D4A017;
+        padding-bottom: 10px;
+    }
+    .input-subheader {
+        font-family: 'Georgia', serif;
+        font-size: 24px;
+        color: #5C4033;
+        text-align: center;
+        margin-bottom: 25px;
+    }
+    .input-box {
+        background-color: #FFF8E7;
+        border: 2px solid #D4A017;
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
+    }
+    .input-label {
+        font-family: 'Times New Roman', serif;
+        font-size: 18px;
+        color: #403029;
+        margin-bottom: 10px;
+    }
+    .stTextArea textarea {
+        font-family: 'Times New Roman', serif;
+        font-size: 16px;
+        color: #403029;
+        background-color: #FFFFFF;
+        border: 1px solid #E8C589;
+        border-radius: 5px;
+        padding: 10px;
+    }
+    .stButton button {
+        font-family: 'Georgia', serif;
+        background-color: #D4A017;
+        color: white;
+        border-radius: 8px;
+        padding: 12px 20px;
+        border: none;
+        width: 200px;
+        margin: 0 auto;
+        display: block;
+    }
+    .stButton button:hover {
+        background-color: #C68E00;
+    }
+    /* Itinerary page styling */
     .itinerary-header {
         font-family: 'Georgia', serif;
         font-size: 32px;
@@ -71,12 +133,7 @@ st.markdown("""
         color: white;
         border-radius: 8px;
         padding: 12px 20px;
-        text-align: center;
-        display: block;
-        width: 250px;
-        margin: 20px auto;
         border: none;
-        cursor: pointer;
     }
     .button-style:hover {
         background-color: #C68E00;
@@ -448,25 +505,36 @@ DESTINATION_DATA = {
 # MAIN APP
 # ======================
 def main():
-    st.title("Travel Planner")
+    # Apply main container styling
+    st.markdown('<div class="main">', unsafe_allow_html=True)
     
+    # Stage 1: Input Collection (Styled)
     if st.session_state.stage == "input_refinement":
+        st.markdown("<div class='input-header'>Travel Planner</div>", unsafe_allow_html=True)
         with st.form("trip_input"):
-            st.subheader("Plan Your Journey")
+            st.markdown("<div class='input-subheader'>Plan Your Journey</div>", unsafe_allow_html=True)
+            st.markdown("<div class='input-box'>", unsafe_allow_html=True)
+            st.markdown("<div class='input-label'>Describe your trip (e.g., destination, dates, budget, interests):</div>", unsafe_allow_html=True)
             user_input = st.text_area(
-                "Describe your trip (e.g., destination, dates, budget, interests):",
+                "",  # Label moved to custom div for styling
                 value="Bangkok from New York, Jun 1-4, 2025, budget, art and food",
-                height=150
+                height=150,
+                key="trip_input_text"
             )
+            st.markdown("</div>", unsafe_allow_html=True)
             
-            if st.form_submit_button("Plan My Trip") and user_input:
-                try:
-                    st.session_state.preferences = parse_preferences(user_input)
-                    st.session_state.stage = "refine_preferences"
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"Error parsing input: {str(e)}")
+            if st.form_submit_button("Plan My Trip"):
+                if user_input:
+                    try:
+                        st.session_state.preferences = parse_preferences(user_input)
+                        st.session_state.stage = "refine_preferences"
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"Error parsing input: {str(e)}")
+                else:
+                    st.error("Please enter your trip details.")
 
+    # Stage 2: Preference Refinement
     elif st.session_state.stage == "refine_preferences":
         prefs = st.session_state.preferences
         
@@ -518,6 +586,7 @@ def main():
                     st.session_state.stage = "activity_suggestions"
                     st.rerun()
 
+    # Stage 3: Activity Suggestions
     elif st.session_state.stage == "activity_suggestions":
         prefs = st.session_state.preferences
         st.subheader(f"Activity Suggestions for {prefs['destination']}")
@@ -538,13 +607,13 @@ def main():
                     st.session_state.stage = "itinerary_display"
                     st.rerun()
 
+    # Stage 4: Itinerary Display
     elif st.session_state.stage == "itinerary_display":
         prefs = st.session_state.preferences
         dest = prefs["destination"]
         duration = prefs["duration"]
         dest_data = prefs["destination_data"]
         
-        # Header
         st.markdown(f"<div class='itinerary-header'>Your {duration}-Day Journey to {dest}</div>", unsafe_allow_html=True)
         st.markdown(f"<i>Dates: {prefs['dates']}</i>", unsafe_allow_html=True)
         
@@ -554,7 +623,6 @@ def main():
         if prefs["start"] != "Not specified":
             st.markdown(f"<i>Departing from: {prefs['start']}</i>", unsafe_allow_html=True)
         
-        # Itinerary
         st.markdown("<div class='subheader'>Detailed Itinerary</div>", unsafe_allow_html=True)
         used_activities = set()
         selected_activities = st.session_state.activities
@@ -591,13 +659,11 @@ def main():
                 if available_activities:
                     activity = random.choice(available_activities)
                     st.markdown(f"<div class='time-slot'>Evening (7:00 PM - 10:00 PM): {activity}</div>", unsafe_allow_html=True)
-                    used_activities.add(activity)
                 else:
                     st.markdown(f"<div class='time-slot'>Evening (7:00 PM - 10:00 PM): {random.choice(fallback_options)}</div>", unsafe_allow_html=True)
             
             st.markdown("</div>", unsafe_allow_html=True)
         
-        # Summary
         st.markdown("<div class='subheader'>Trip Summary</div>", unsafe_allow_html=True)
         st.markdown("<div class='summary-box'>", unsafe_allow_html=True)
         cols = st.columns(4)
@@ -612,7 +678,6 @@ def main():
         st.markdown(f"<div class='summary-text'>Accommodation: {prefs['accommodation'].capitalize()}</div>", unsafe_allow_html=True)
         st.markdown("</div>", unsafe_allow_html=True)
         
-        # Buttons
         col1, col2 = st.columns(2)
         with col1:
             if st.button("Plan Another Journey", key="plan_another"):
@@ -624,8 +689,9 @@ def main():
         with col2:
             if st.button("Save This Itinerary", key="save_itinerary"):
                 st.session_state.saved = True
-                # Simulate saving/emailing (actual email requires external API)
                 st.markdown("<div class='save-message'>Itinerary saved successfully! Check your email or saved plans.</div>", unsafe_allow_html=True)
+    
+    st.markdown('</div>', unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
