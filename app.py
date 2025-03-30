@@ -4,71 +4,82 @@ from datetime import datetime, timedelta
 import random
 from collections import defaultdict
 
-# Custom CSS for classic styling across pages
+# Custom CSS for distinct styling
 st.markdown("""
     <style>
-    /* General page styling */
+    /* Full-screen background for first page */
+    .input-page {
+        background-image: url('https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1');
+        background-size: cover;
+        background-position: center;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: -1;
+    }
+    .input-container {
+        background-color: rgba(255, 245, 238, 0.9); /* Ivory with transparency */
+        border-radius: 15px;
+        padding: 40px;
+        margin: 50px auto;
+        max-width: 600px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    }
+    .input-header {
+        font-family: 'Playfair Display', serif;
+        font-size: 40px;
+        font-weight: bold;
+        color: #006D77; /* Teal */
+        text-align: center;
+        margin-bottom: 20px;
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+    }
+    .input-subheader {
+        font-family: 'Playfair Display', serif;
+        font-size: 24px;
+        color: #FF6F61; /* Coral */
+        text-align: center;
+        margin-bottom: 30px;
+    }
+    .input-label {
+        font-family: 'Lora', serif;
+        font-size: 18px;
+        color: #006D77;
+        margin-bottom: 15px;
+    }
+    .stTextArea textarea {
+        font-family: 'Lora', serif;
+        font-size: 16px;
+        color: #333333;
+        background-color: #FFFFFF;
+        border: 2px solid #FF6F61;
+        border-radius: 10px;
+        padding: 15px;
+        box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .stButton button {
+        font-family: 'Playfair Display', serif;
+        background-color: #FF6F61;
+        color: white;
+        border-radius: 10px;
+        padding: 12px 30px;
+        border: none;
+        width: 200px;
+        margin: 20px auto;
+        display: block;
+        font-size: 18px;
+    }
+    .stButton button:hover {
+        background-color: #E85A4F;
+    }
+    /* Itinerary page styling (unchanged) */
     .main {
         background-color: #FDF5E6;
         padding: 20px;
         border-radius: 10px;
     }
-    /* Input page styling */
-    .input-header {
-        font-family: 'Georgia', serif;
-        font-size: 36px;
-        font-weight: bold;
-        color: #5C4033;
-        text-align: center;
-        margin-bottom: 20px;
-        border-bottom: 3px double #D4A017;
-        padding-bottom: 10px;
-    }
-    .input-subheader {
-        font-family: 'Georgia', serif;
-        font-size: 24px;
-        color: #5C4033;
-        text-align: center;
-        margin-bottom: 25px;
-    }
-    .input-box {
-        background-color: #FFF8E7;
-        border: 2px solid #D4A017;
-        border-radius: 8px;
-        padding: 20px;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        margin-bottom: 20px;
-    }
-    .input-label {
-        font-family: 'Times New Roman', serif;
-        font-size: 18px;
-        color: #403029;
-        margin-bottom: 10px;
-    }
-    .stTextArea textarea {
-        font-family: 'Times New Roman', serif;
-        font-size: 16px;
-        color: #403029;
-        background-color: #FFFFFF;
-        border: 1px solid #E8C589;
-        border-radius: 5px;
-        padding: 10px;
-    }
-    .stButton button {
-        font-family: 'Georgia', serif;
-        background-color: #D4A017;
-        color: white;
-        border-radius: 8px;
-        padding: 12px 20px;
-        border: none;
-        width: 200px;
-        margin: 0 auto;
-        display: block;
-    }
-    .stButton button:hover {
-        background-color: #C68E00;
-    }
-    /* Itinerary page styling */
     .itinerary-header {
         font-family: 'Georgia', serif;
         font-size: 32px;
@@ -147,6 +158,9 @@ st.markdown("""
     }
     </style>
 """, unsafe_allow_html=True)
+
+# Add required fonts via Google Fonts
+st.markdown('<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Lora&display=swap" rel="stylesheet">', unsafe_allow_html=True)
 
 # Initialize session state
 if "stage" not in st.session_state:
@@ -500,29 +514,24 @@ DESTINATION_DATA = {
         "country": "Egypt", "cost_multiplier": 0.7
     }
 }
-
 # ======================
 # MAIN APP
 # ======================
 def main():
-    # Apply main container styling
-    st.markdown('<div class="main">', unsafe_allow_html=True)
-    
-    # Stage 1: Input Collection (Styled)
+    # Stage 1: Input Collection (New Styling)
     if st.session_state.stage == "input_refinement":
+        st.markdown('<div class="input-page"></div>', unsafe_allow_html=True)  # Full-screen background
+        st.markdown('<div class="input-container">', unsafe_allow_html=True)
         st.markdown("<div class='input-header'>Travel Planner</div>", unsafe_allow_html=True)
         with st.form("trip_input"):
             st.markdown("<div class='input-subheader'>Plan Your Journey</div>", unsafe_allow_html=True)
-            st.markdown("<div class='input-box'>", unsafe_allow_html=True)
             st.markdown("<div class='input-label'>Describe your trip (e.g., destination, dates, budget, interests):</div>", unsafe_allow_html=True)
             user_input = st.text_area(
-                "",  # Label moved to custom div for styling
+                "",  # Label moved to custom div
                 value="Bangkok from New York, Jun 1-4, 2025, budget, art and food",
                 height=150,
                 key="trip_input_text"
             )
-            st.markdown("</div>", unsafe_allow_html=True)
-            
             if st.form_submit_button("Plan My Trip"):
                 if user_input:
                     try:
@@ -533,165 +542,168 @@ def main():
                         st.error(f"Error parsing input: {str(e)}")
                 else:
                     st.error("Please enter your trip details.")
+        st.markdown('</div>', unsafe_allow_html=True)
 
-    # Stage 2: Preference Refinement
-    elif st.session_state.stage == "refine_preferences":
-        prefs = st.session_state.preferences
+    # Other stages (with original styling)
+    else:
+        st.markdown('<div class="main">', unsafe_allow_html=True)
         
-        st.subheader("Refine Your Preferences")
-        
-        with st.form("preference_refinement"):
-            new_dest = st.selectbox("Destination:", sorted(list(DESTINATION_DATA.keys())), 
-                                   index=sorted(list(DESTINATION_DATA.keys())).index(prefs.get("destination", "Paris")))
-            new_start = st.text_input("Traveling from:", value=prefs.get("start", "Not specified"))
+        if st.session_state.stage == "refine_preferences":
+            prefs = st.session_state.preferences
             
-            col1, col2 = st.columns(2)
-            with col1:
-                start_date = st.date_input("Start Date:", value=prefs.get("start_date", datetime.now()), min_value=datetime.now())
-            with col2:
-                end_date = st.date_input("End Date:", value=prefs.get("end_date", datetime.now() + timedelta(days=6)), min_value=start_date)
-            new_duration = (end_date - start_date).days + 1
-            new_dates = f"{start_date.strftime('%b %d, %Y')} - {end_date.strftime('%b %d, %Y')}"
+            st.subheader("Refine Your Preferences")
             
-            new_budget = st.selectbox("Budget Level:", ["Luxury", "Moderate", "Budget"], 
-                                     index=["Luxury", "Moderate", "Budget"].index(prefs.get("budget", "moderate").capitalize()))
-            new_interests = st.multiselect("Your Interests:", sorted(["Adventure", "Art", "Beach", "Culture", "Food", "History", "Nature", "Shopping"]), 
-                                          default=[i.capitalize() for i in prefs.get("interests", ["culture"])])
-            new_dietary = st.selectbox("Dietary Preference:", ["None", "Vegetarian", "Vegan"], 
-                                      index=["None", "Vegetarian", "Vegan"].index(prefs.get("dietary", "none").capitalize()))
-            new_mobility = st.slider("Walking Tolerance (miles/day):", 1, 10, prefs.get("mobility", 5))
-            new_accommodation = st.selectbox("Accommodation Preference:", ["Budget", "Mid-range", "Luxury"], 
-                                            index=["Budget", "Mid-range", "Luxury"].index(prefs.get("accommodation", "mid-range").capitalize()))
+            with st.form("preference_refinement"):
+                new_dest = st.selectbox("Destination:", sorted(list(DESTINATION_DATA.keys())), 
+                                       index=sorted(list(DESTINATION_DATA.keys())).index(prefs.get("destination", "Paris")))
+                new_start = st.text_input("Traveling from:", value=prefs.get("start", "Not specified"))
+                
+                col1, col2 = st.columns(2)
+                with col1:
+                    start_date = st.date_input("Start Date:", value=prefs.get("start_date", datetime.now()), min_value=datetime.now())
+                with col2:
+                    end_date = st.date_input("End Date:", value=prefs.get("end_date", datetime.now() + timedelta(days=6)), min_value=start_date)
+                new_duration = (end_date - start_date).days + 1
+                new_dates = f"{start_date.strftime('%b %d, %Y')} - {end_date.strftime('%b %d, %Y')}"
+                
+                new_budget = st.selectbox("Budget Level:", ["Luxury", "Moderate", "Budget"], 
+                                         index=["Luxury", "Moderate", "Budget"].index(prefs.get("budget", "moderate").capitalize()))
+                new_interests = st.multiselect("Your Interests:", sorted(["Adventure", "Art", "Beach", "Culture", "Food", "History", "Nature", "Shopping"]), 
+                                              default=[i.capitalize() for i in prefs.get("interests", ["culture"])])
+                new_dietary = st.selectbox("Dietary Preference:", ["None", "Vegetarian", "Vegan"], 
+                                          index=["None", "Vegetarian", "Vegan"].index(prefs.get("dietary", "none").capitalize()))
+                new_mobility = st.slider("Walking Tolerance (miles/day):", 1, 10, prefs.get("mobility", 5))
+                new_accommodation = st.selectbox("Accommodation Preference:", ["Budget", "Mid-range", "Luxury"], 
+                                                index=["Budget", "Mid-range", "Luxury"].index(prefs.get("accommodation", "mid-range").capitalize()))
+                
+                if st.form_submit_button("Confirm Preferences"):
+                    if not new_interests:
+                        st.error("Please select at least one interest.")
+                    elif new_duration < 1:
+                        st.error("End date must be after start date.")
+                    else:
+                        st.session_state.preferences = {
+                            "destination": new_dest,
+                            "start": new_start,
+                            "dates": new_dates,
+                            "duration": new_duration,
+                            "budget": new_budget.lower(),
+                            "interests": [i.lower() for i in new_interests],
+                            "dietary": new_dietary.lower(),
+                            "mobility": new_mobility,
+                            "accommodation": new_accommodation.lower(),
+                            "start_date": start_date,
+                            "end_date": end_date,
+                            "destination_data": DESTINATION_DATA.get(new_dest)
+                        }
+                        st.session_state.stage = "activity_suggestions"
+                        st.rerun()
+
+        elif st.session_state.stage == "activity_suggestions":
+            prefs = st.session_state.preferences
+            st.subheader(f"Activity Suggestions for {prefs['destination']}")
             
-            if st.form_submit_button("Confirm Preferences"):
-                if not new_interests:
-                    st.error("Please select at least one interest.")
-                elif new_duration < 1:
-                    st.error("End date must be after start date.")
+            suggestions = []
+            for interest in prefs["interests"]:
+                activities = search_activities(prefs["destination"], interest)
+                suggestions.extend(activities[:3])
+            
+            with st.form("activity_selection"):
+                selected_activities = st.multiselect("Choose activities you like:", suggestions, 
+                                                    default=suggestions[:min(3 * len(prefs["interests"]), len(suggestions))])
+                if st.form_submit_button("Generate Itinerary"):
+                    if not selected_activities:
+                        st.error("Please select at least one activity.")
+                    else:
+                        st.session_state.activities = selected_activities
+                        st.session_state.stage = "itinerary_display"
+                        st.rerun()
+
+        elif st.session_state.stage == "itinerary_display":
+            prefs = st.session_state.preferences
+            dest = prefs["destination"]
+            duration = prefs["duration"]
+            dest_data = prefs["destination_data"]
+            
+            st.markdown(f"<div class='itinerary-header'>Your {duration}-Day Journey to {dest}</div>", unsafe_allow_html=True)
+            st.markdown(f"<i>Dates: {prefs['dates']}</i>", unsafe_allow_html=True)
+            
+            if dest_data and "image" in dest_data:
+                st.image(dest_data["image"], use_container_width=True, caption=f"{dest}, {dest_data.get('country', '')}")
+            st.markdown(f"<b>{dest}, {dest_data.get('country', '')}</b>", unsafe_allow_html=True)
+            if prefs["start"] != "Not specified":
+                st.markdown(f"<i>Departing from: {prefs['start']}</i>", unsafe_allow_html=True)
+            
+            st.markdown("<div class='subheader'>Detailed Itinerary</div>", unsafe_allow_html=True)
+            used_activities = set()
+            selected_activities = st.session_state.activities
+            fallback_options = ["Leisure time", "Local exploration", "Rest at your accommodation"]
+            
+            for day in range(1, duration + 1):
+                current_date = (prefs["start_date"] + timedelta(days=day-1)).strftime("%A, %b %d")
+                st.markdown(f"""
+                    <div class='day-box'>
+                        <div class='day-title'>Day {day}: {current_date}</div>
+                """, unsafe_allow_html=True)
+                
+                if selected_activities and day <= len(selected_activities):
+                    activity = selected_activities[day-1]
+                    st.markdown(f"<div class='time-slot'>Morning (9:00 AM - 12:00 PM): {activity}</div>", unsafe_allow_html=True)
+                    used_activities.add(activity)
                 else:
-                    st.session_state.preferences = {
-                        "destination": new_dest,
-                        "start": new_start,
-                        "dates": new_dates,
-                        "duration": new_duration,
-                        "budget": new_budget.lower(),
-                        "interests": [i.lower() for i in new_interests],
-                        "dietary": new_dietary.lower(),
-                        "mobility": new_mobility,
-                        "accommodation": new_accommodation.lower(),
-                        "start_date": start_date,
-                        "end_date": end_date,
-                        "destination_data": DESTINATION_DATA.get(new_dest)
-                    }
-                    st.session_state.stage = "activity_suggestions"
-                    st.rerun()
-
-    # Stage 3: Activity Suggestions
-    elif st.session_state.stage == "activity_suggestions":
-        prefs = st.session_state.preferences
-        st.subheader(f"Activity Suggestions for {prefs['destination']}")
-        
-        suggestions = []
-        for interest in prefs["interests"]:
-            activities = search_activities(prefs["destination"], interest)
-            suggestions.extend(activities[:3])
-        
-        with st.form("activity_selection"):
-            selected_activities = st.multiselect("Choose activities you like:", suggestions, 
-                                                default=suggestions[:min(3 * len(prefs["interests"]), len(suggestions))])
-            if st.form_submit_button("Generate Itinerary"):
-                if not selected_activities:
-                    st.error("Please select at least one activity.")
-                else:
-                    st.session_state.activities = selected_activities
-                    st.session_state.stage = "itinerary_display"
-                    st.rerun()
-
-    # Stage 4: Itinerary Display
-    elif st.session_state.stage == "itinerary_display":
-        prefs = st.session_state.preferences
-        dest = prefs["destination"]
-        duration = prefs["duration"]
-        dest_data = prefs["destination_data"]
-        
-        st.markdown(f"<div class='itinerary-header'>Your {duration}-Day Journey to {dest}</div>", unsafe_allow_html=True)
-        st.markdown(f"<i>Dates: {prefs['dates']}</i>", unsafe_allow_html=True)
-        
-        if dest_data and "image" in dest_data:
-            st.image(dest_data["image"], use_container_width=True, caption=f"{dest}, {dest_data.get('country', '')}")
-        st.markdown(f"<b>{dest}, {dest_data.get('country', '')}</b>", unsafe_allow_html=True)
-        if prefs["start"] != "Not specified":
-            st.markdown(f"<i>Departing from: {prefs['start']}</i>", unsafe_allow_html=True)
-        
-        st.markdown("<div class='subheader'>Detailed Itinerary</div>", unsafe_allow_html=True)
-        used_activities = set()
-        selected_activities = st.session_state.activities
-        fallback_options = ["Leisure time", "Local exploration", "Rest at your accommodation"]
-        
-        for day in range(1, duration + 1):
-            current_date = (prefs["start_date"] + timedelta(days=day-1)).strftime("%A, %b %d")
-            st.markdown(f"""
-                <div class='day-box'>
-                    <div class='day-title'>Day {day}: {current_date}</div>
-            """, unsafe_allow_html=True)
-            
-            if selected_activities and day <= len(selected_activities):
-                activity = selected_activities[day-1]
-                st.markdown(f"<div class='time-slot'>Morning (9:00 AM - 12:00 PM): {activity}</div>", unsafe_allow_html=True)
-                used_activities.add(activity)
-            else:
-                st.markdown(f"<div class='time-slot'>Morning (9:00 AM - 12:00 PM): {random.choice(fallback_options)}</div>", unsafe_allow_html=True)
-            
-            lunch_base = random.choice(["Local café", "Fine restaurant", "Street fare"])
-            dietary_note = f" ({prefs['dietary']} options)" if prefs['dietary'] != "none" else ""
-            st.markdown(f"<div class='time-slot'>Luncheon (12:00 PM - 1:00 PM): {lunch_base}{dietary_note}</div>", unsafe_allow_html=True)
-            
-            available_activities = [a for a in selected_activities if a not in used_activities]
-            if available_activities:
-                activity = random.choice(available_activities)
-                st.markdown(f"<div class='time-slot'>Afternoon (2:00 PM - 5:00 PM): {activity}</div>", unsafe_allow_html=True)
-                used_activities.add(activity)
-            else:
-                st.markdown(f"<div class='time-slot'>Afternoon (2:00 PM - 5:00 PM): {random.choice(fallback_options)}</div>", unsafe_allow_html=True)
-            
-            if day > 1:
+                    st.markdown(f"<div class='time-slot'>Morning (9:00 AM - 12:00 PM): {random.choice(fallback_options)}</div>", unsafe_allow_html=True)
+                
+                lunch_base = random.choice(["Local café", "Fine restaurant", "Street fare"])
+                dietary_note = f" ({prefs['dietary']} options)" if prefs['dietary'] != "none" else ""
+                st.markdown(f"<div class='time-slot'>Luncheon (12:00 PM - 1:00 PM): {lunch_base}{dietary_note}</div>", unsafe_allow_html=True)
+                
                 available_activities = [a for a in selected_activities if a not in used_activities]
                 if available_activities:
                     activity = random.choice(available_activities)
-                    st.markdown(f"<div class='time-slot'>Evening (7:00 PM - 10:00 PM): {activity}</div>", unsafe_allow_html=True)
+                    st.markdown(f"<div class='time-slot'>Afternoon (2:00 PM - 5:00 PM): {activity}</div>", unsafe_allow_html=True)
+                    used_activities.add(activity)
                 else:
-                    st.markdown(f"<div class='time-slot'>Evening (7:00 PM - 10:00 PM): {random.choice(fallback_options)}</div>", unsafe_allow_html=True)
+                    st.markdown(f"<div class='time-slot'>Afternoon (2:00 PM - 5:00 PM): {random.choice(fallback_options)}</div>", unsafe_allow_html=True)
+                
+                if day > 1:
+                    available_activities = [a for a in selected_activities if a not in used_activities]
+                    if available_activities:
+                        activity = random.choice(available_activities)
+                        st.markdown(f"<div class='time-slot'>Evening (7:00 PM - 10:00 PM): {activity}</div>", unsafe_allow_html=True)
+                        used_activities.add(activity)
+                    else:
+                        st.markdown(f"<div class='time-slot'>Evening (7:00 PM - 10:00 PM): {random.choice(fallback_options)}</div>", unsafe_allow_html=True)
+                
+                st.markdown("</div>", unsafe_allow_html=True)
             
+            st.markdown("<div class='subheader'>Trip Summary</div>", unsafe_allow_html=True)
+            st.markdown("<div class='summary-box'>", unsafe_allow_html=True)
+            cols = st.columns(4)
+            cols[0].metric("Destination", dest)
+            cols[1].metric("Duration", f"{duration} days")
+            cols[2].metric("Budget", prefs["budget"].capitalize())
+            cols[3].metric("Walking", f"{prefs['mobility']} miles/day")
+            
+            st.markdown(f"<div class='summary-text'>Travel Dates: {prefs['dates']}</div>", unsafe_allow_html=True)
+            st.markdown(f"<div class='summary-text'>Interests: {', '.join([i.capitalize() for i in prefs['interests']])}</div>", unsafe_allow_html=True)
+            st.markdown(f"<div class='summary-text'>Dietary Preference: {prefs['dietary'].capitalize()}</div>", unsafe_allow_html=True)
+            st.markdown(f"<div class='summary-text'>Accommodation: {prefs['accommodation'].capitalize()}</div>", unsafe_allow_html=True)
             st.markdown("</div>", unsafe_allow_html=True)
+            
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button("Plan Another Journey", key="plan_another"):
+                    st.session_state.stage = "input_refinement"
+                    st.session_state.preferences = {}
+                    st.session_state.activities = []
+                    st.session_state.saved = False
+                    st.rerun()
+            with col2:
+                if st.button("Save This Itinerary", key="save_itinerary"):
+                    st.session_state.saved = True
+                    st.markdown("<div class='save-message'>Itinerary saved successfully! Check your email or saved plans.</div>", unsafe_allow_html=True)
         
-        st.markdown("<div class='subheader'>Trip Summary</div>", unsafe_allow_html=True)
-        st.markdown("<div class='summary-box'>", unsafe_allow_html=True)
-        cols = st.columns(4)
-        cols[0].metric("Destination", dest)
-        cols[1].metric("Duration", f"{duration} days")
-        cols[2].metric("Budget", prefs["budget"].capitalize())
-        cols[3].metric("Walking", f"{prefs['mobility']} miles/day")
-        
-        st.markdown(f"<div class='summary-text'>Travel Dates: {prefs['dates']}</div>", unsafe_allow_html=True)
-        st.markdown(f"<div class='summary-text'>Interests: {', '.join([i.capitalize() for i in prefs['interests']])}</div>", unsafe_allow_html=True)
-        st.markdown(f"<div class='summary-text'>Dietary Preference: {prefs['dietary'].capitalize()}</div>", unsafe_allow_html=True)
-        st.markdown(f"<div class='summary-text'>Accommodation: {prefs['accommodation'].capitalize()}</div>", unsafe_allow_html=True)
-        st.markdown("</div>", unsafe_allow_html=True)
-        
-        col1, col2 = st.columns(2)
-        with col1:
-            if st.button("Plan Another Journey", key="plan_another"):
-                st.session_state.stage = "input_refinement"
-                st.session_state.preferences = {}
-                st.session_state.activities = []
-                st.session_state.saved = False
-                st.rerun()
-        with col2:
-            if st.button("Save This Itinerary", key="save_itinerary"):
-                st.session_state.saved = True
-                st.markdown("<div class='save-message'>Itinerary saved successfully! Check your email or saved plans.</div>", unsafe_allow_html=True)
-    
-    st.markdown('</div>', unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
