@@ -1,362 +1,593 @@
 import streamlit as st
 import re
+from datetime import datetime, timedelta
+import random
+from collections import defaultdict
 
-# Custom CSS for updated aesthetics
-st.markdown("""
-    <style>
-    .title {
-        font-size: 40px;
-        font-weight: bold;
-        color: #00BFFF; /* Deep Sky Blue for bright title */
-        text-align: center;
-        margin-bottom: 10px;
+# ======================
+# CORE FUNCTIONS
+# ======================
+def parse_dates(text):
+    """Enhanced date parsing that handles multiple formats"""
+    text_lower = text.lower()
+    today = datetime.now()
+    
+    # Specific date ranges (MM/DD/YYYY - MM/DD/YYYY)
+    date_range = re.search(r"(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})\s*[-to]+\s*(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})", text_lower)
+    if date_range:
+        try:
+            start = datetime.strptime(f"{date_range.group(1)}/{date_range.group(2)}/{date_range.group(3)}", "%m/%d/%Y")
+            end = datetime.strptime(f"{date_range.group(4)}/{date_range.group(5)}/{date_range.group(6)}", "%m/%d/%Y")
+            duration = (end - start).days + 1
+            return {
+                "dates": f"{start.strftime('%b %d, %Y')} - {end.strftime('%b %d, %Y')}",
+                "duration": duration,
+                "start_date": start,
+                "end_date": end
+            }
+        except:
+            pass
+    
+    # Month Day - Day, Year (Jun 10-15, 2023)
+    month_range = re.search(r"(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+(\d{1,2})\s*[-]\s*(\d{1,2}),?\s+(\d{4})", text_lower)
+    if month_range:
+        try:
+            month = month_range.group(1)[:3].title()
+            start_day = int(month_range.group(2))
+            end_day = int(month_range.group(3))
+            year = int(month_range.group(4))
+            start_date = datetime.strptime(f"{month} {start_day} {year}", "%b %d %Y")
+            end_date = datetime.strptime(f"{month} {end_day} {year}", "%b %d %Y")
+            duration = (end_date - start_date).days + 1
+            return {
+                "dates": f"{month} {start_day}-{end_day}, {year}",
+                "duration": duration,
+                "start_date": start_date,
+                "end_date": end_date
+            }
+        except:
+            pass
+    
+    # Duration phrases (5 days, 1 week, weekend)
+    duration_map = [
+        ("weekend", 2),
+        ("long weekend", 3),
+        ("one week|1 week|7 days", 7),
+        ("two weeks|2 weeks|14 days", 14),
+        ("month|30 days", 30)
+    ]
+    for pattern, days in duration_map:
+        if re.search(pattern, text_lower):
+            end_date = today + timedelta(days=days-1)
+            return {
+                "dates": f"{today.strftime('%b %d')} - {end_date.strftime('%b %d, %Y')} ({days} days)",
+                "duration": days,
+                "start_date": today,
+                "end_date": end_date
+            }
+    
+    # Specific single dates with duration
+    single_date = re.search(r"(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+(\d{1,2})\s+(?:for|on)\s+(\d+)\s+(day|week)s?", text_lower)
+    if single_date:
+        try:
+            month = single_date.group(1)[:3].title()
+            day = int(single_date.group(2))
+            duration = int(single_date.group(3))
+            if single_date.group(4) == "week":
+                duration *= 7
+            year = today.year
+            start_date = datetime.strptime(f"{month} {day} {year}", "%b %d %Y")
+            end_date = start_date + timedelta(days=duration-1)
+            return {
+                "dates": f"{start_date.strftime('%b %d, %Y')} - {end_date.strftime('%b %d, %Y')}",
+                "duration": duration,
+                "start_date": start_date,
+                "end_date": end_date
+            }
+        except:
+            pass
+    
+    # Fallback - assume 7 day trip starting today
+    end_date = today + timedelta(days=6)
+    return {
+        "dates": f"{today.strftime('%b %d')} - {end_date.strftime('%b %d, %Y')} (7 days)",
+        "duration": 7,
+        "start_date": today,
+        "end_date": end_date
     }
-    .subtitle {
-        font-size: 20px;
-        color: #00BFFF; /* Deep Sky Blue to match title */
-        text-align: center;
-        margin-bottom: 20px;
-    }
-    .section-header {
-        font-size: 26px;
-        font-weight: bold;
-        color: #FFD700; /* Gold */
-        margin-top: 20px;
-    }
-    .debug {
-        font-size: 12px;
-        color: #888888;
-        background-color: #f0f0f0;
-        padding: 10px;
-        border-radius: 5px;
-    }
-    .suggestion-box {
-        background-color: #FFFFFF;
-        padding: 15px;
-        border-radius: 10px;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        margin-bottom: 10px;
-    }
-    .itinerary-card {
-        background-color: #FFF8E1;
-        padding: 15px;
-        border-radius: 10px;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        margin-bottom: 10px;
-        transition: transform 0.2s;
-    }
-    .itinerary-card:hover {
-        transform: scale(1.02);
-    }
-    .question {
-        font-size: 16px;
-        font-weight: bold;
-        color: #000000; /* Black for questions */
-        margin-bottom: 5px;
-    }
-    .image-container {
-        position: relative;
-        width: 100%;
-        height: 300px;
-        background-size: cover;
-        background-position: center;
-        border-radius: 10px;
-        margin-bottom: 20px;
-    }
-    .image-overlay {
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(0, 0, 0, 0.5); /* Semi-transparent black overlay */
-        color: #FFFFFF;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 20px;
-        font-weight: bold;
-        border-radius: 10px;
-    }
-    body {
-        background: linear-gradient(to bottom right, #87CEEB, #4682B4);
-    }
-    </style>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-""", unsafe_allow_html=True)
 
-# Initialize session state
-if "stage" not in st.session_state:
-    st.session_state.stage = "input_refinement"
-if "preferences" not in st.session_state:
-    st.session_state.preferences = {}
-if "activities" not in st.session_state:
-    st.session_state.activities = []
-if "scroll_to" not in st.session_state:
-    st.session_state.scroll_to = None
+def parse_preferences(user_input):
+    """Parse all user preferences from input text"""
+    prefs = {}
+    text_lower = user_input.lower()
+    
+    # Destination
+    for city in DESTINATION_DATA.keys():
+        if city.lower() in text_lower:
+            prefs["destination"] = city
+            break
+    if "destination" not in prefs:
+        prefs["destination"] = random.choice(list(DESTINATION_DATA.keys()))
+        prefs["auto_selected"] = True
+    
+    # Dates and Duration
+    date_info = parse_dates(user_input)
+    prefs.update(date_info)
+    
+    # Budget
+    if any(word in text_lower for word in ["luxury", "high-end", "expensive", "premium"]):
+        prefs["budget"] = "luxury"
+    elif any(word in text_lower for word in ["budget", "cheap", "affordable", "economy"]):
+        prefs["budget"] = "budget"
+    else:
+        prefs["budget"] = "moderate"
+    
+    # Interests
+    interest_map = {
+        "art": ["art", "museum", "gallery", "painting"],
+        "food": ["food", "restaurant", "dining", "cuisine"],
+        "history": ["history", "historical", "monument"],
+        "nature": ["nature", "park", "hike", "outdoor"],
+        "shopping": ["shop", "mall", "market", "boutique"],
+        "adventure": ["adventure", "hiking", "trek"],
+        "culture": ["culture", "local", "traditional"],
+        "beach": ["beach", "coast", "shore"]
+    }
+    prefs["interests"] = [
+        interest for interest, keywords in interest_map.items()
+        if any(keyword in text_lower for keyword in keywords)
+    ] or ["culture", "food"]  # Default interests
+    
+    # Origin
+    origin_match = re.search(r"(from|flying from|departing from)\s+([a-zA-Z\s]+)", text_lower)
+    prefs["start"] = origin_match.group(2).strip().title() if origin_match else "Not specified"
+    
+    return prefs
 
-# Dynamic background image based on destination
-destination_images = {
-    "Paris": "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?q=80&w=2073&auto=format&fit=crop",
-    "London": "https://images.unsplash.com/photo-1529655682523-44aca611b2d0?q=80&w=2070&auto=format&fit=crop",
-    "Tokyo": "https://images.unsplash.com/photo-1542051841857-5f90071e7989?q=80&w=2070&auto=format&fit=crop"
+# ======================
+# DESTINATION DATABASE
+# ======================
+DESTINATION_DATA = {
+    # Europe (8 destinations)
+    "Paris": {
+        "image": "https://images.unsplash.com/photo-1502602898657-3e91760cbb34",
+        "coordinates": (48.8566, 2.3522), "timezone": "Europe/Paris",
+        "activities": {
+            "art": ["Louvre Museum", "Musée d'Orsay", "Centre Pompidou", "Rodin Museum"],
+            "landmarks": ["Eiffel Tower", "Notre-Dame Cathedral", "Arc de Triomphe"],
+            "food": ["Le Marais Food Tour", "Montmartre Cafés", "Seine River Dinner"],
+            "culture": ["Latin Quarter Walk", "Shakespeare & Company", "Père Lachaise"]
+        },
+        "country": "France", "cost_multiplier": 1.3
+    },
+    "London": {
+        "image": "https://images.unsplash.com/photo-1529655682523-44aca611b2d0",
+        "coordinates": (51.5074, -0.1278), "timezone": "Europe/London",
+        "activities": {
+            "history": ["Tower of London", "Westminster Abbey", "Buckingham Palace"],
+            "museums": ["British Museum", "Natural History Museum", "Tate Modern"],
+            "food": ["Borough Market", "Afternoon Tea", "East End Food Tour"],
+            "parks": ["Hyde Park", "Regent's Park", "Kew Gardens"]
+        },
+        "country": "UK", "cost_multiplier": 1.4
+    },
+    "Rome": {
+        "image": "https://images.unsplash.com/photo-1552832230-c0197dd311b5",
+        "coordinates": (41.9028, 12.4964), "timezone": "Europe/Rome",
+        "activities": {
+            "history": ["Colosseum", "Roman Forum", "Pantheon", "Palatine Hill"],
+            "art": ["Vatican Museums", "Sistine Chapel", "Galleria Borghese"],
+            "food": ["Trastevere Food Tour", "Gelato Tasting", "Pasta Making Class"],
+            "religion": ["St. Peter's Basilica", "Trevi Fountain", "Spanish Steps"]
+        },
+        "country": "Italy", "cost_multiplier": 1.2
+    },
+    "Barcelona": {
+        "image": "https://images.unsplash.com/photo-1523531294919-4bcd7c65e216",
+        "coordinates": (41.3851, 2.1734), "timezone": "Europe/Madrid",
+        "activities": {
+            "architecture": ["Sagrada Familia", "Park Güell", "Casa Batlló"],
+            "beaches": ["Barceloneta Beach", "Bogatell Beach", "Nova Icaria"],
+            "food": ["La Boqueria Market", "Tapas Tour", "Paella Cooking Class"],
+            "culture": ["Gothic Quarter", "Picasso Museum", "Flamenco Show"]
+        },
+        "country": "Spain", "cost_multiplier": 1.1
+    },
+    "Amsterdam": {
+        "image": "https://images.unsplash.com/photo-1512470876302-972faa2aa9a4",
+        "coordinates": (52.3676, 4.9041), "timezone": "Europe/Amsterdam",
+        "activities": {
+            "culture": ["Van Gogh Museum", "Anne Frank House", "Rijksmuseum"],
+            "canals": ["Canal Cruise", "Jordaan District Walk", "Houseboat Museum"],
+            "history": ["Rembrandt House", "Jewish Historical Museum"],
+            "unique": ["Heineken Experience", "Albert Cuyp Market"]
+        },
+        "country": "Netherlands", "cost_multiplier": 1.2
+    },
+    "Vienna": {
+        "image": "https://images.unsplash.com/photo-1516550893923-42d28e5677af",
+        "coordinates": (48.2082, 16.3738), "timezone": "Europe/Vienna",
+        "activities": {
+            "music": ["Vienna State Opera", "Mozart House", "Strauss Concert"],
+            "palaces": ["Schönbrunn Palace", "Hofburg Palace", "Belvedere Palace"],
+            "cafes": ["Sachertorte at Hotel Sacher", "Demel Cafe", "Central Cafe"],
+            "museums": ["Kunsthistorisches Museum", "Albertina", "Leopold Museum"]
+        },
+        "country": "Austria", "cost_multiplier": 1.1
+    },
+    "Prague": {
+        "image": "https://images.unsplash.com/photo-1519677100203-a0e668c92439",
+        "coordinates": (50.0755, 14.4378), "timezone": "Europe/Prague",
+        "activities": {
+            "history": ["Prague Castle", "Charles Bridge", "Old Town Square"],
+            "culture": ["Astronomical Clock", "Jewish Quarter", "Kafka Museum"],
+            "food": ["Beer Tasting", "Trdelník Making", "Traditional Czech Dinner"],
+            "views": ["Petrin Tower", "Vltava River Cruise", "Vyšehrad Castle"]
+        },
+        "country": "Czech Republic", "cost_multiplier": 0.9
+    },
+    "Istanbul": {
+        "image": "https://images.unsplash.com/photo-1527838832700-5059252407fa",
+        "coordinates": (41.0082, 28.9784), "timezone": "Europe/Istanbul",
+        "activities": {
+            "history": ["Hagia Sophia", "Blue Mosque", "Topkapi Palace"],
+            "markets": ["Grand Bazaar", "Spice Bazaar", "Arasta Bazaar"],
+            "culture": ["Bosphorus Cruise", "Turkish Bath Experience"],
+            "food": ["Kebab Tasting", "Baklava Workshop", "Turkish Coffee Reading"]
+        },
+        "country": "Turkey", "cost_multiplier": 0.8
+    },
+    "Reykjavik": {
+        "image": "https://images.unsplash.com/photo-1529963183134-61a90db47eaf",
+        "coordinates": (64.1466, -21.9426), "timezone": "Atlantic/Reykjavik",
+        "activities": {
+            "nature": ["Blue Lagoon", "Golden Circle", "Northern Lights Tour"],
+            "adventure": ["Glacier Hiking", "Whale Watching", "Ice Cave Exploration"],
+            "culture": ["Hallgrimskirkja", "Harpa Concert Hall", "National Museum"],
+            "unique": ["Volcano Tour", "Geothermal Bakery", "Puffin Watching"]
+        },
+        "country": "Iceland", "cost_multiplier": 1.5
+    },
+    # Asia (5 destinations)
+    "Tokyo": {
+        "image": "https://images.unsplash.com/photo-1542051841857-5f90071e7989",
+        "coordinates": (35.6762, 139.6503), "timezone": "Asia/Tokyo",
+        "activities": {
+            "culture": ["Senso-ji Temple", "Meiji Shrine", "Imperial Palace"],
+            "food": ["Tsukiji Fish Market", "Ramen Tasting", "Sushi Making Class"],
+            "modern": ["Shibuya Crossing", "TeamLab Planets", "Tokyo Skytree"],
+            "nature": ["Shinjuku Gyoen", "Ueno Park", "Mount Takao Hike"]
+        },
+        "country": "Japan", "cost_multiplier": 1.4
+    },
+    "Bangkok": {
+        "image": "https://images.unsplash.com/photo-1563492065599-3520f775eeed",
+        "coordinates": (13.7563, 100.5018), "timezone": "Asia/Bangkok",
+        "activities": {
+            "temples": ["Grand Palace", "Wat Pho", "Wat Arun"],
+            "markets": ["Chatuchak Weekend Market", "Floating Markets"],
+            "culture": ["Thai Cooking Class", "Muay Thai Match"],
+            "modern": ["Sky Bar", "ICONSIAM Mall", "Mahanakhon Skywalk"]
+        },
+        "country": "Thailand", "cost_multiplier": 0.7
+    },
+    "Singapore": {
+        "image": "https://images.unsplash.com/photo-1565967511849-76a60a516170",
+        "coordinates": (1.3521, 103.8198), "timezone": "Asia/Singapore",
+        "activities": {
+            "modern": ["Marina Bay Sands", "Gardens by the Bay", "Sentosa Island"],
+            "culture": ["Chinatown", "Little India", "Kampong Glam"],
+            "food": ["Hawker Centre Tour", "Chili Crab Dinner"],
+            "nature": ["Singapore Zoo", "Botanic Gardens"]
+        },
+        "country": "Singapore", "cost_multiplier": 1.3
+    },
+    "Bali": {
+        "image": "https://images.unsplash.com/photo-1537996194471-e657df975ab4",
+        "coordinates": (-8.3405, 115.0920), "timezone": "Asia/Makassar",
+        "activities": {
+            "temples": ["Tanah Lot", "Uluwatu Temple", "Besakih Temple"],
+            "nature": ["Tegallalang Rice Terraces", "Mount Batur Sunrise"],
+            "beaches": ["Seminyak", "Nusa Dua", "Padang Padang"],
+            "culture": ["Balinese Dance Show", "Silver Jewelry Making"]
+        },
+        "country": "Indonesia", "cost_multiplier": 0.6
+    },
+    "Hong Kong": {
+        "image": "https://images.unsplash.com/photo-1531259683007-016a7b628fc3",
+        "coordinates": (22.3193, 114.1694), "timezone": "Asia/Hong_Kong",
+        "activities": {
+            "views": ["Victoria Peak", "Star Ferry", "Ngong Ping 360"],
+            "culture": ["Tian Tan Buddha", "Wong Tai Sin Temple"],
+            "food": ["Dim Sum Tour", "Temple Street Night Market"],
+            "shopping": ["Causeway Bay", "Mong Kok Markets"]
+        },
+        "country": "China", "cost_multiplier": 1.2
+    },
+    # North America (2 destinations)
+    "New York": {
+        "image": "https://images.unsplash.com/photo-1499092346589-b9b6be3e94b2",
+        "coordinates": (40.7128, -74.0060), "timezone": "America/New_York",
+        "activities": {
+            "landmarks": ["Statue of Liberty", "Empire State Building", "Times Square"],
+            "museums": ["Metropolitan Museum", "MOMA", "Natural History Museum"],
+            "food": ["Pizza Tour", "Chinatown Food Crawl", "Bagel Tasting"],
+            "culture": ["Broadway Show", "High Line Walk", "5th Avenue Shopping"]
+        },
+        "country": "USA", "cost_multiplier": 1.5
+    },
+    "Cancun": {
+        "image": "https://images.unsplash.com/photo-1519794206461-cccd885bf209",
+        "coordinates": (21.1619, -86.8515), "timezone": "America/Cancun",
+        "activities": {
+            "beaches": ["Playa Delfines", "Isla Mujeres", "Playa Norte"],
+            "ruins": ["Chichen Itza", "Tulum Ruins", "Coba Ruins"],
+            "adventure": ["Xcaret Park", "Xel-Ha Park", "Cenote Diving"],
+            "nightlife": ["Coco Bongo", "Mandala Beach Club"]
+        },
+        "country": "Mexico", "cost_multiplier": 0.9
+    },
+    # Middle East (1 destination)
+    "Dubai": {
+        "image": "https://images.unsplash.com/photo-1518684079-3c830dcef090",
+        "coordinates": (25.2048, 55.2708), "timezone": "Asia/Dubai",
+        "activities": {
+            "modern": ["Burj Khalifa", "Dubai Mall", "Palm Jumeirah"],
+            "culture": ["Dubai Creek", "Gold Souk", "Bastakiya Quarter"],
+            "desert": ["Desert Safari", "Dune Bashing", "Camel Riding"],
+            "luxury": ["Burj Al Arab", "Atlantis Waterpark"]
+        },
+        "country": "UAE", "cost_multiplier": 1.6
+    },
+    # Africa (1 destination)
+    "Cape Town": {
+        "image": "https://images.unsplash.com/photo-1516026672322-bc52d61a60d0",
+        "coordinates": (-33.9249, 18.4241), "timezone": "Africa/Johannesburg",
+        "activities": {
+            "nature": ["Table Mountain", "Cape Point", "Kirstenbosch Gardens"],
+            "wine": ["Stellenbosch Wine Tour", "Franschhoek Wine Tram"],
+            "history": ["Robben Island", "District Six Museum"],
+            "adventure": ["Lion's Head Hike", "Shark Cage Diving"]
+        },
+        "country": "South Africa", "cost_multiplier": 0.8
+    },
+    # Oceania (1 destination)
+    "Sydney": {
+        "image": "https://images.unsplash.com/photo-1506973035872-a4ec16b8e8d9",
+        "coordinates": (-33.8688, 151.2093), "timezone": "Australia/Sydney",
+        "activities": {
+            "landmarks": ["Sydney Opera House", "Harbour Bridge", "Bondi Beach"],
+            "nature": ["Blue Mountains", "Taronga Zoo", "Royal Botanic Garden"],
+            "food": ["Sydney Fish Market", "Chinatown Food Tour"],
+            "culture": ["Art Gallery of NSW", "Darling Harbour"]
+        },
+        "country": "Australia", "cost_multiplier": 1.3
+    },
+    # South America (2 destinations)
+    "Rio de Janeiro": {
+        "image": "https://images.unsplash.com/photo-1483729558449-99ef09a8c325",
+        "coordinates": (-22.9068, -43.1729), "timezone": "America/Sao_Paulo",
+        "activities": {
+            "landmarks": ["Christ the Redeemer", "Sugarloaf Mountain"],
+            "beaches": ["Copacabana", "Ipanema", "Leblon"],
+            "nature": ["Tijuca Forest", "Botanical Garden"],
+            "culture": ["Samba Show", "Favela Tour"]
+        },
+        "country": "Brazil", "cost_multiplier": 0.9
+    },
+    "Cairo": {
+        "image": "https://images.unsplash.com/photo-1572252009286-268acec5ca0a",
+        "coordinates": (30.0444, 31.2357), "timezone": "Africa/Cairo",
+        "activities": {
+            "pyramids": ["Giza Pyramids", "Sphinx", "Saqqara Pyramid"],
+            "museums": ["Egyptian Museum", "Coptic Museum"],
+            "culture": ["Khan el-Khalili Bazaar", "Nile Dinner Cruise"],
+            "history": ["Dahshur Pyramids", "Memphis Ruins"]
+        },
+        "country": "Egypt", "cost_multiplier": 0.7
+    }
 }
 
-# Header with Dynamic Image
-header_image = destination_images.get(st.session_state.preferences.get("destination", "Paris"), destination_images["Paris"])
-st.markdown('<div class="title">AI-Powered Travel Planner</div>', unsafe_allow_html=True)
-st.markdown('<div class="subtitle">Let’s craft your dream trip with a personalized itinerary!</div>', unsafe_allow_html=True)
-st.image(header_image, caption="Explore Your Next Adventure", use_container_width=True)
-
-# Debug: Show current stage and preferences
-with st.expander("Debug Info", expanded=False):
-    st.markdown(f'<div class="debug">Current Stage: {st.session_state.stage}</div>', unsafe_allow_html=True)
-    st.markdown(f'<div class="debug">Current Preferences: {st.session_state.preferences}</div>', unsafe_allow_html=True)
-
-# Scroll to section if set
-if st.session_state.scroll_to:
-    st.markdown(f"""
-        <script>
-        setTimeout(() => {{
-            let element = document.getElementById("{st.session_state.scroll_to}");
-            if (element) {{
-                element.scrollIntoView({{behavior: "smooth", block: "start"}});
-            }} else {{
-                console.log("Element {st.session_state.scroll_to} not found");
-            }}
-        }}, 500);
-        </script>
-    """, unsafe_allow_html=True)
-    st.session_state.scroll_to = None
-
-# Stage 1: Input Refinement
-if st.session_state.stage == "input_refinement":
-    st.markdown('<div class="section-header" id="step1">Step 1: Tell Us About Your Trip</div>', unsafe_allow_html=True)
-    with st.form(key="initial_input_form"):
-        user_input = st.text_area("Share your trip details (e.g., destination, dates, budget, interests):", height=100)
-        submit_button = st.form_submit_button(label="Submit Preferences", help="Let’s get started!")
+# ======================
+# MAIN APP
+# ======================
+def main():
+    # Initialize session state
+    if "stage" not in st.session_state:
+        st.session_state.stage = "input_refinement"
+    if "preferences" not in st.session_state:
+        st.session_state.preferences = {}
+    if "activities" not in st.session_state:
+        st.session_state.activities = []
     
-    if submit_button and user_input:
-        prefs = {}
-        if "from" in user_input.lower():
-            match = re.search(r"from\s+([A-Za-z\s]+)", user_input, re.IGNORECASE)
-            if match:
-                prefs["start"] = match.group(1).strip()
-        cities = ["Paris", "London", "Tokyo"]
-        destination = next((city.capitalize() for city in cities if city.lower() in user_input.lower()), None)
-        if destination:
-            prefs["destination"] = destination
-        if "budget" in user_input.lower():
-            match = re.search(r"budget\s*[:\-\s]*(\w+)", user_input, re.IGNORECASE)
-            if match:
-                prefs["budget"] = match.group(1).strip()
-        if any(date in user_input.lower() for date in ["june", "july", "2025"]):
-            prefs["dates"] = "June 1–7, 2025"
-        interests = []
-        for interest in ["art", "food", "history", "nature", "famous", "offbeat"]:
-            if interest in user_input.lower():
-                interests.append(interest)
-        prefs["interests"] = interests if interests else ["art", "food"]
-        
-        st.session_state.preferences = prefs
-        if not all(k in prefs for k in ["destination", "dates"]):
-            st.warning("Hmm, I need more info. Could you clarify your destination and dates?")
-            with st.form(key="clarify_form"):
-                clarification = st.text_area("Clarify your destination and dates:", height=100)
-                clarify_button = st.form_submit_button(label="Submit Clarification")
-            if clarify_button and clarification:
-                if "from" in clarification.lower():
-                    match = re.search(r"from\s+([A-Za-z\s]+)", clarification, re.IGNORECASE)
-                    if match:
-                        prefs["start"] = match.group(1).strip()
-                destination = next((city.capitalize() for city in cities if city.lower() in clarification.lower()), None)
-                if destination:
-                    prefs["destination"] = destination
-                if any(date in clarification.lower() for date in ["june", "july", "2025"]):
-                    prefs["dates"] = "June 1–7, 2025"
-                st.session_state.preferences = prefs
-                if "destination" in prefs and "dates" in prefs:
+    st.title("🌍 AI-Powered Travel Planner")
+    
+    # Stage 1: Input Collection
+    if st.session_state.stage == "input_refinement":
+        with st.form("trip_input"):
+            st.subheader("Plan Your Dream Trip")
+            user_input = st.text_area(
+                "Describe your trip (destination, dates, interests, budget):",
+                placeholder="e.g., 'Romantic Paris getaway from June 10-15, love art and fine dining with luxury budget'",
+                height=150
+            )
+            
+            if st.form_submit_button("Plan My Trip") and user_input:
+                try:
+                    st.session_state.preferences = parse_preferences(user_input)
                     st.session_state.stage = "refine_preferences"
-                    st.session_state.scroll_to = "step2"
                     st.rerun()
-        else:
-            st.session_state.stage = "refine_preferences"
-            st.session_state.scroll_to = "step2"
+                except Exception as e:
+                    st.error(f"Error parsing your input: {str(e)}")
+
+    # Stage 2: Preference Refinement
+    elif st.session_state.stage == "refine_preferences":
+        prefs = st.session_state.preferences
+        st.subheader("Refine Your Preferences")
+        
+        # Display what we understood
+        st.write("Here's what we understood from your input:")
+        cols = st.columns(3)
+        cols[0].metric("Destination", prefs.get("destination", "Not specified"))
+        cols[1].metric("Dates", prefs.get("dates", "Not specified"))
+        cols[2].metric("Duration", f"{prefs.get('duration', '?')} days")
+        
+        with st.form("preference_refinement"):
+            st.markdown("### Adjust your preferences:")
+            
+            # Destination
+            current_dest = prefs.get("destination", "")
+            dest_options = sorted(list(DESTINATION_DATA.keys()))
+            current_dest_idx = dest_options.index(current_dest) if current_dest in dest_options else 0
+            new_dest = st.selectbox(
+                "Destination:",
+                dest_options,
+                index=current_dest_idx
+            )
+            
+            # Origin
+            new_start = st.text_input(
+                "Traveling from:",
+                value=prefs.get("start", "Not specified")
+            )
+            
+            # Dates and Duration
+            col1, col2 = st.columns(2)
+            with col1:
+                new_dates = st.text_input(
+                    "Travel Dates:",
+                    value=prefs.get("dates", "")
+                )
+            with col2:
+                duration_options = {
+                    "Weekend (2-3 days)": 3,
+                    "Short trip (4-5 days)": 5,
+                    "One week (7 days)": 7,
+                    "Two weeks (14 days)": 14,
+                    "Month-long (30 days)": 30,
+                    "Custom duration": "custom"
+                }
+                current_duration = prefs.get("duration", 7)
+                default_duration = next(
+                    (k for k,v in duration_options.items() if v == current_duration),
+                    "One week (7 days)"
+                )
+                new_duration = st.selectbox(
+                    "Trip Duration:",
+                    list(duration_options.keys()),
+                    index=list(duration_options.values()).index(
+                        current_duration if current_duration in duration_options.values() else 7
+                    )
+                )
+                
+                if new_duration == "Custom duration":
+                    custom_days = st.number_input(
+                        "Enter number of days:",
+                        min_value=1,
+                        max_value=60,
+                        value=current_duration
+                    )
+            
+            # Budget
+            budget_map = {"luxury": "Luxury", "moderate": "Moderate", "budget": "Budget"}
+            current_budget = budget_map.get(prefs.get("budget", "moderate"), "Moderate")
+            new_budget = st.selectbox(
+                "Budget Level:",
+                ["Luxury", "Moderate", "Budget"],
+                index=["Luxury", "Moderate", "Budget"].index(current_budget)
+            )
+            
+            # Interests
+            interest_options = sorted(["Adventure", "Art", "Beach", "Culture", "Food", "History", "Nature", "Shopping"])
+            current_interests = [i.capitalize() for i in prefs.get("interests", ["culture", "food"])]
+            new_interests = st.multiselect(
+                "Your Interests:",
+                interest_options,
+                default=current_interests
+            )
+            
+            if st.form_submit_button("Create My Itinerary"):
+                # Calculate final duration
+                final_duration = custom_days if new_duration == "Custom duration" else duration_options[new_duration]
+                
+                # Update preferences
+                st.session_state.preferences = {
+                    "destination": new_dest,
+                    "start": new_start,
+                    "dates": new_dates,
+                    "duration": final_duration,
+                    "budget": new_budget.lower(),
+                    "interests": [i.lower() for i in new_interests],
+                    "start_date": prefs.get("start_date", datetime.now()),
+                    "end_date": prefs.get("start_date", datetime.now()) + timedelta(days=final_duration-1),
+                    "destination_data": DESTINATION_DATA.get(new_dest)
+                }
+                st.session_state.stage = "itinerary_display"
+                st.rerun()
+    
+    # Stage 3: Itinerary Display
+    elif st.session_state.stage == "itinerary_display":
+        prefs = st.session_state.preferences
+        dest = prefs.get("destination", "Your Destination")
+        duration = prefs.get("duration", 7)
+        dest_data = prefs.get("destination_data")
+        
+        st.header(f"✈️ Your {duration}-Day Trip to {dest}")
+        st.subheader(f"📅 {prefs.get('dates', '')}")
+        
+        # Display destination info
+        if dest_data and "image" in dest_data:
+            st.image(dest_data["image"], use_column_width=True)
+        st.markdown(f"**{dest}, {dest_data.get('country', '') if dest_data else ''}**")
+        
+        if prefs.get("start", "Not specified") != "Not specified":
+            st.markdown(f"*Traveling from: {prefs['start']}*")
+        
+        # Display full itinerary without expanders
+        st.markdown("---")
+        st.subheader("Your Complete Itinerary")
+        
+        for day in range(1, duration + 1):
+            current_date = (prefs["start_date"] + timedelta(days=day-1)).strftime("%A, %b %d")
+            st.markdown(f"#### Day {day}: {current_date}")
+            
+            # Morning activity
+            if "art" in prefs["interests"] and day % 2 == 1 and dest_data:
+                activity = random.choice(dest_data["activities"].get("art", ["Art Gallery Visit"]))
+                st.markdown(f"- **Morning (9AM-12PM):** {activity}")
+            
+            # Lunch
+            if "food" in prefs["interests"]:
+                st.markdown(f"- **Lunch (12PM-1PM):** {random.choice(['Local cafe', 'Recommended restaurant'])}")
+            
+            # Afternoon activity
+            if "food" in prefs["interests"] and day % 2 == 0 and dest_data:
+                activity = random.choice(dest_data["activities"].get("food", ["Local Restaurant"]))
+                st.markdown(f"- **Afternoon (2PM-5PM):** {activity}")
+            
+            # Evening
+            if day > 1:  # Skip first evening
+                if "culture" in prefs["interests"] and dest_data:
+                    activity = random.choice(dest_data["activities"].get("culture", ["Cultural Show"]))
+                    st.markdown(f"- **Evening (7PM-10PM):** {activity}")
+            
+            st.markdown("---")
+        
+        # Trip Summary
+        st.markdown("---")
+        st.subheader("Trip Summary")
+        cols = st.columns(3)
+        cols[0].metric("Destination", dest)
+        cols[1].metric("Duration", f"{duration} days")
+        cols[2].metric("Budget Level", prefs.get("budget", "moderate").title())
+        
+        st.markdown(f"**Travel Dates:** {prefs.get('dates', 'Not specified')}")
+        st.markdown(f"**Interests:** {', '.join([i.capitalize() for i in prefs.get('interests', [])])}")
+        
+        if st.button("Plan Another Trip"):
+            st.session_state.stage = "input_refinement"
+            st.session_state.preferences = {}
             st.rerun()
 
-# Stage 2: Refine Preferences
-elif st.session_state.stage == "refine_preferences":
-    st.markdown('<div class="section-header" id="step2">Step 2: Refine Your Preferences</div>', unsafe_allow_html=True)
-    prefs = st.session_state.preferences
-    interests_str = ", ".join(prefs.get("interests", ["art", "food"]))
-    
-    # Image above the refinement section
-    st.markdown(f"""
-        <div class="image-container" style="background-image: url('{destination_images.get(prefs.get('destination', 'Paris'), destination_images['Paris'])}');">
-            <div class="image-overlay">{prefs.get('destination', 'Paris')} Awaits!</div>
-        </div>
-    """, unsafe_allow_html=True)
-    
-    st.write(f"""
-    Great, thanks for the details! Here’s what I’ve gathered:
-    - **Travel Dates:** {prefs.get('dates', 'June 1–7, 2025')}
-    - **Starting Location:** {prefs.get('start', 'Not specified')}
-    - **Destination:** {prefs.get('destination', 'Paris')}
-    - **Budget:** {prefs.get('budget', 'Moderate')}
-    - **Preferences:** {interests_str}
-    """)
-    
-    st.markdown("**A few quick questions to tailor your trip:**", unsafe_allow_html=True)
-    st.markdown(f'<div class="question">1. For interests like {interests_str}, any specifics (e.g., famous museums vs. hidden galleries for art)?</div>', unsafe_allow_html=True)
-    st.markdown('<div class="question">2. Any dietary preferences (e.g., vegetarian)?</div>', unsafe_allow_html=True)
-    st.markdown('<div class="question">3. Accommodation preference (e.g., budget-friendly, central)?</div>', unsafe_allow_html=True)
-    st.markdown('<div class="question">4. How much walking are you comfortable with daily (in miles)?</div>', unsafe_allow_html=True)
-    
-    with st.form(key="refined_input_form"):
-        refined_input = st.text_area("Tell me more about your preferences:", height=150, placeholder="e.g., I prefer famous museums, no dietary restrictions, budget-friendly central hotel, and about 5 miles walking daily.")
-        confirm_button = st.form_submit_button(label="Confirm Details")
-    
-    if confirm_button and refined_input:
-        refined_text = refined_input.lower()
-        specific_interests = "famous museums" if "famous" in refined_text else "hidden galleries" if "hidden" in refined_text or "offbeat" in refined_text else "famous museums"
-        if "landmarks" in refined_text.lower():
-            specific_interests = "famous landmarks"
-        dietary = "none" if "none" in refined_text or "no dietary" in refined_text else "vegetarian" if "vegetarian" in refined_text else "none"
-        accommodation = "budget-friendly, central" if "budget" in refined_text or "central" in refined_text else "budget-friendly, central"
-        mobility_match = re.search(r"(\d+)\s*(miles|m)", refined_text)
-        mobility = mobility_match.group(1) if mobility_match else "5"
-        
-        st.session_state.preferences = {
-            "dates": prefs.get("dates", "June 1–7, 2025"),
-            "start": prefs.get("start", "New York"),
-            "destination": prefs.get("destination", "Paris"),
-            "budget": prefs.get("budget", "Moderate"),
-            "interests": ", ".join(prefs.get("interests", ["art", "food"])) + f" ({specific_interests})",
-            "accommodation": accommodation,
-            "mobility": mobility,
-            "dietary": dietary
-        }
-        st.session_state.stage = "activity_suggestions"
-        st.session_state.scroll_to = "step3"
-        st.rerun()
-    elif confirm_button and not refined_input:
-        st.error("Please provide some details before confirming!")
-
-# Stage 3: Activity Suggestions
-elif st.session_state.stage == "activity_suggestions":
-    prefs = st.session_state.preferences
-    st.markdown('<div class="section-header" id="step3">Step 3: Explore Activity Suggestions</div>', unsafe_allow_html=True)
-    
-    # Image above the suggestions section
-    st.markdown(f"""
-        <div class="image-container" style="background-image: url('{destination_images.get(prefs.get('destination', 'Paris'), destination_images['Paris'])}');">
-            <div class="image-overlay">Discover {prefs.get('destination', 'Paris')}</div>
-        </div>
-    """, unsafe_allow_html=True)
-    
-    st.write("Based on your preferences, here are some exciting activities:")
-    
-    # Dynamic activity suggestions based on destination
-    if prefs.get("destination") == "Paris":
-        st.markdown('<div class="suggestion-box">1. Louvre Museum - Iconic art like the Mona Lisa (~€17).</div>', unsafe_allow_html=True)
-        st.markdown('<div class="suggestion-box">2. Musée d’Orsay - Impressionist masterpieces (~€14).</div>', unsafe_allow_html=True)
-        st.markdown('<div class="suggestion-box">3. Montmartre Art Walk - Historic artist district (~5 miles).</div>', unsafe_allow_html=True)
-        st.markdown('<div class="suggestion-box">4. Le Marais Food Stroll - Casual falafel and pastries (~€6–10).</div>', unsafe_allow_html=True)
-        st.markdown('<div class="suggestion-box">5. Musée de l’Orangerie - Monet’s Water Lilies (~€12).</div>', unsafe_allow_html=True)
-        st.markdown('<div class="suggestion-box">6. Canal Saint-Martin Picnic - Local bites by the canal (~€10).</div>', unsafe_allow_html=True)
-        st.markdown('<div class="suggestion-box">7. Street Art in Belleville - Offbeat murals (~4 miles).</div>', unsafe_allow_html=True)
-        activities = [
-            "Louvre Museum", "Musée d’Orsay", "Montmartre Art Walk",
-            "Le Marais Food Stroll", "Musée de l’Orangerie",
-            "Canal Saint-Martin Picnic", "Street Art in Belleville"
-        ]
-    elif prefs.get("destination") == "London":
-        st.markdown('<div class="suggestion-box">1. British Museum - World-famous history and artifacts (Free entry).</div>', unsafe_allow_html=True)
-        st.markdown('<div class="suggestion-box">2. Tower of London - Historic fortress and Crown Jewels (~£30).</div>', unsafe_allow_html=True)
-        st.markdown('<div class="suggestion-box">3. Westminster Abbey - Iconic Gothic church (~£29).</div>', unsafe_allow_html=True)
-        st.markdown('<div class="suggestion-box">4. Borough Market - Vegetarian food stalls like Ethiopian wraps (~£8–12).</div>', unsafe_allow_html=True)
-        st.markdown('<div class="suggestion-box">5. Covent Garden - Vegetarian dining options like The Barbary Next Door (~£10–15).</div>', unsafe_allow_html=True)
-        st.markdown('<div class="suggestion-box">6. Thames River Walk - Scenic walk past landmarks (~4 miles).</div>', unsafe_allow_html=True)
-        st.markdown('<div class="suggestion-box">7. Camden Market - Vegetarian street food and history (~£5–10, ~3 miles).</div>', unsafe_allow_html=True)
-        activities = [
-            "British Museum", "Tower of London", "Westminster Abbey",
-            "Borough Market", "Covent Garden",
-            "Thames River Walk", "Camden Market"
-        ]
-    else:  # Default to Paris if destination not recognized
-        st.markdown('<div class="suggestion-box">1. Louvre Museum - Iconic art like the Mona Lisa (~€17).</div>', unsafe_allow_html=True)
-        st.markdown('<div class="suggestion-box">2. Musée d’Orsay - Impressionist masterpieces (~€14).</div>', unsafe_allow_html=True)
-        st.markdown('<div class="suggestion-box">3. Montmartre Art Walk - Historic artist district (~5 miles).</div>', unsafe_allow_html=True)
-        st.markdown('<div class="suggestion-box">4. Le Marais Food Stroll - Casual falafel and pastries (~€6–10).</div>', unsafe_allow_html=True)
-        st.markdown('<div class="suggestion-box">5. Musée de l’Orangerie - Monet’s Water Lilies (~€12).</div>', unsafe_allow_html=True)
-        st.markdown('<div class="suggestion-box">6. Canal Saint-Martin Picnic - Local bites by the canal (~€10).</div>', unsafe_allow_html=True)
-        st.markdown('<div class="suggestion-box">7. Street Art in Belleville - Offbeat murals (~4 miles).</div>', unsafe_allow_html=True)
-        activities = [
-            "Louvre Museum", "Musée d’Orsay", "Montmartre Art Walk",
-            "Le Marais Food Stroll", "Musée de l’Orangerie",
-            "Canal Saint-Martin Picnic", "Street Art in Belleville"
-        ]
-    
-    with st.form(key="approve_activities_form"):
-        approve_button = st.form_submit_button(label="Approve Activities", help="Ready for your itinerary?")
-    
-    if approve_button:
-        st.session_state.activities = activities
-        st.session_state.stage = "itinerary_generation"
-        st.session_state.scroll_to = "step4"
-        st.rerun()
-
-# Stage 4: Itinerary Generation
-elif st.session_state.stage == "itinerary_generation":
-    prefs = st.session_state.preferences
-    st.markdown('<div class="section-header" id="step4">Step 4: Your Personalized Itinerary</div>', unsafe_allow_html=True)
-    st.write(f"Here’s your tailored 7-day {prefs.get('destination', 'Paris')} itinerary:")
-    
-    # Dynamic itinerary based on destination
-    if prefs.get("destination") == "Paris":
-        itinerary = [
-            f'<div class="itinerary-card"><i class="fas fa-plane-arrival"></i> <strong>Day 1: June 1 – Arrival & Le Marais</strong><br>- Afternoon: Arrive, check into {prefs.get("accommodation", "budget-friendly central")} hotel. Le Marais Food Stroll (~2 miles).</div>',
-            f'<div class="itinerary-card"><i class="fas fa-palette"></i> <strong>Day 2: June 2 – Louvre</strong><br>- Morning: Louvre Museum (~€17, ~2 miles walking).</div>',
-            f'<div class="itinerary-card"><i class="fas fa-paint-brush"></i> <strong>Day 3: June 3 – Impressionist Art</strong><br>- Morning: Musée d’Orsay (~€14). Afternoon: Musée de l’Orangerie (~€12, ~2.5 miles total).</div>',
-            f'<div class="itinerary-card"><i class="fas fa-walking"></i> <strong>Day 4: June 4 – Montmartre</strong><br>- Morning: Montmartre Art Walk (~5 miles).</div>',
-            f'<div class="itinerary-card"><i class="fas fa-utensils"></i> <strong>Day 5: June 5 – Canal Saint-Martin</strong><br>- Morning: Canal Saint-Martin Picnic (~3 miles).</div>',
-            f'<div class="itinerary-card"><i class="fas fa-spray-can"></i> <strong>Day 6: June 6 – Belleville</strong><br>- Morning: Street Art in Belleville (~4 miles).</div>',
-            f'<div class="itinerary-card"><i class="fas fa-plane-departure"></i> <strong>Day 7: June 7 – Departure</strong><br>- Morning: Depart from {prefs.get("destination", "Paris")}.</div>',
-        ]
-    elif prefs.get("destination") == "London":
-        itinerary = [
-            f'<div class="itinerary-card"><i class="fas fa-plane-arrival"></i> <strong>Day 1: June 1 – Arrival & Covent Garden</strong><br>- Afternoon: Arrive, check into {prefs.get("accommodation", "budget-friendly central")} hotel. Covent Garden for vegetarian dining (~2 miles).</div>',
-            f'<div class="itinerary-card"><i class="fas fa-university"></i> <strong>Day 2: June 2 – British Museum</strong><br>- Morning: British Museum (Free entry, ~2 miles walking).</div>',
-            f'<div class="itinerary-card"><i class="fas fa-chess-rook"></i> <strong>Day 3: June 3 – Tower of London</strong><br>- Morning: Tower of London (~£30, ~2 miles walking).</div>',
-            f'<div class="itinerary-card"><i class="fas fa-church"></i> <strong>Day 4: June 4 – Westminster Abbey</strong><br>- Morning: Westminster Abbey (~£29, ~2 miles walking).</div>',
-            f'<div class="itinerary-card"><i class="fas fa-utensils"></i> <strong>Day 5: June 5 – Borough Market</strong><br>- Morning: Borough Market for vegetarian food (~3 miles).</div>',
-            f'<div class="itinerary-card"><i class="fas fa-walking"></i> <strong>Day 6: June 6 – Thames River Walk & Camden Market</strong><br>- Morning: Thames River Walk (~4 miles). Afternoon: Camden Market for vegetarian street food (~3 miles).</div>',
-            f'<div class="itinerary-card"><i class="fas fa-plane-departure"></i> <strong>Day 7: June 7 – Departure</strong><br>- Morning: Depart from {prefs.get("destination", "London")}.</div>',
-        ]
-    else:  # Default to Paris
-        itinerary = [
-            f'<div class="itinerary-card"><i class="fas fa-plane-arrival"></i> <strong>Day 1: June 1 – Arrival & Le Marais</strong><br>- Afternoon: Arrive, check into {prefs.get("accommodation", "budget-friendly central")} hotel. Le Marais Food Stroll (~2 miles).</div>',
-            f'<div class="itinerary-card"><i class="fas fa-palette"></i> <strong>Day 2: June 2 – Louvre</strong><br>- Morning: Louvre Museum (~€17, ~2 miles walking).</div>',
-            f'<div class="itinerary-card"><i class="fas fa-paint-brush"></i> <strong>Day 3: June 3 – Impressionist Art</strong><br>- Morning: Musée d’Orsay (~€14). Afternoon: Musée de l’Orangerie (~€12, ~2.5 miles total).</div>',
-            f'<div class="itinerary-card"><i class="fas fa-walking"></i> <strong>Day 4: June 4 – Montmartre</strong><br>- Morning: Montmartre Art Walk (~5 miles).</div>',
-            f'<div class="itinerary-card"><i class="fas fa-utensils"></i> <strong>Day 5: June 5 – Canal Saint-Martin</strong><br>- Morning: Canal Saint-Martin Picnic (~3 miles).</div>',
-            f'<div class="itinerary-card"><i class="fas fa-spray-can"></i> <strong>Day 6: June 6 – Belleville</strong><br>- Morning: Street Art in Belleville (~4 miles).</div>',
-            f'<div class="itinerary-card"><i class="fas fa-plane-departure"></i> <strong>Day 7: June 7 – Departure</strong><br>- Morning: Depart from {prefs.get("destination", "Paris")}.</div>',
-        ]
-    
-    for day in itinerary:
-        st.markdown(day, unsafe_allow_html=True)
-    
-    with st.form(key="start_over_form"):
-        start_over_button = st.form_submit_button(label="Start Over", help="Plan another trip!")
-    
-    if start_over_button:
-        st.session_state.stage = "input_refinement"
-        st.session_state.preferences = {}
-        st.session_state.activities = []
-        st.session_state.scroll_to = "step1"
-        st.rerun()
-
-# Footer
-st.markdown("---")
-st.write("Powered by Streamlit | Designed for your travel dreams!")
+if __name__ == "__main__":
+    main()
