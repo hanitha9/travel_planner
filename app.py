@@ -1,7 +1,7 @@
 import streamlit as st
 import re
 
-# Custom CSS for aesthetics with sticky header
+# Custom CSS for enhanced aesthetics
 st.markdown("""
     <style>
     .title {
@@ -9,12 +9,8 @@ st.markdown("""
         font-weight: bold;
         color: #FFFFFF;
         text-align: center;
+        text-shadow: 2px 2px 4px #333333;
         margin-bottom: 10px;
-        position: sticky;
-        top: 0;
-        background: linear-gradient(to bottom right, #87CEEB, #4682B4);
-        padding: 10px 0;
-        z-index: 1000;
     }
     .subtitle {
         font-size: 20px;
@@ -27,6 +23,7 @@ st.markdown("""
         font-weight: bold;
         color: #FFD700;
         margin-top: 20px;
+        text-shadow: 1px 1px 2px #555555;
     }
     .debug {
         font-size: 12px;
@@ -58,6 +55,7 @@ st.markdown("""
         font-weight: bold;
         color: #FFFFFF;
         margin-bottom: 5px;
+        text-shadow: 1px 1px 2px #333333;
     }
     body {
         background: linear-gradient(to bottom right, #87CEEB, #4682B4);
@@ -73,8 +71,6 @@ if "preferences" not in st.session_state:
     st.session_state.preferences = {}
 if "activities" not in st.session_state:
     st.session_state.activities = []
-if "scroll_to" not in st.session_state:
-    st.session_state.scroll_to = None
 
 # Dynamic background image based on destination
 destination_images = {
@@ -83,8 +79,10 @@ destination_images = {
     "Tokyo": "https://images.unsplash.com/photo-1542051841857-5f90071e7989?q=80&w=2070&auto=format&fit=crop"
 }
 
-# Header with Dynamic Image (Sticky Title)
+# Default image if no destination yet
 header_image = destination_images.get(st.session_state.preferences.get("destination", "Paris"), destination_images["Paris"])
+
+# UI Header with Dynamic Image
 st.markdown('<div class="title">AI-Powered Travel Planner</div>', unsafe_allow_html=True)
 st.markdown('<div class="subtitle">Let’s craft your dream trip with a personalized itinerary!</div>', unsafe_allow_html=True)
 st.image(header_image, caption="Explore Your Next Adventure", use_container_width=True)
@@ -94,25 +92,9 @@ with st.expander("Debug Info", expanded=False):
     st.markdown(f'<div class="debug">Current Stage: {st.session_state.stage}</div>', unsafe_allow_html=True)
     st.markdown(f'<div class="debug">Current Preferences: {st.session_state.preferences}</div>', unsafe_allow_html=True)
 
-# Scroll to section if set
-if st.session_state.scroll_to:
-    st.markdown(f"""
-        <script>
-        setTimeout(() => {{
-            let element = document.getElementById("{st.session_state.scroll_to}");
-            if (element) {{
-                element.scrollIntoView({{behavior: "smooth", block: "start"}});
-            }} else {{
-                console.log("Element {st.session_state.scroll_to} not found");
-            }}
-        }}, 500);
-        </script>
-    """, unsafe_allow_html=True)
-    st.session_state.scroll_to = None
-
-# Stage 1: Input Refinement
+# Stage 1: Input Refinement - Initial Input with Bonus Challenge
 if st.session_state.stage == "input_refinement":
-    st.markdown('<div class="section-header" id="step1">Step 1: Tell Us About Your Trip</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-header">Step 1: Tell Us About Your Trip</div>', unsafe_allow_html=True)
     with st.form(key="initial_input_form"):
         user_input = st.text_area("Share your trip details (e.g., destination, dates, budget, interests):", height=100)
         submit_button = st.form_submit_button(label="Submit Preferences", help="Let’s get started!")
@@ -141,7 +123,7 @@ if st.session_state.stage == "input_refinement":
         
         st.session_state.preferences = prefs
         if not all(k in prefs for k in ["destination", "dates"]):
-            st.warning("Hmm, I need more info. Could you clarify your destination and dates?")
+            st.warning("Hmm, I need more info. Could you clarify your destination and travel dates?")
             with st.form(key="clarify_form"):
                 clarification = st.text_area("Clarify your destination and dates:", height=100)
                 clarify_button = st.form_submit_button(label="Submit Clarification")
@@ -158,16 +140,14 @@ if st.session_state.stage == "input_refinement":
                 st.session_state.preferences = prefs
                 if "destination" in prefs and "dates" in prefs:
                     st.session_state.stage = "refine_preferences"
-                    st.session_state.scroll_to = "step2"
                     st.rerun()
         else:
             st.session_state.stage = "refine_preferences"
-            st.session_state.scroll_to = "step2"
             st.rerun()
 
-# Stage 2: Refine Preferences
+# Stage 2: Refine Preferences - Additional Questions
 elif st.session_state.stage == "refine_preferences":
-    st.markdown('<div class="section-header" id="step2">Step 2: Refine Your Preferences</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-header">Step 2: Refine Your Preferences</div>', unsafe_allow_html=True)
     prefs = st.session_state.preferences
     interests_str = ", ".join(prefs.get("interests", ["art", "food"]))
     st.write(f"""
@@ -209,7 +189,6 @@ elif st.session_state.stage == "refine_preferences":
             "dietary": dietary
         }
         st.session_state.stage = "activity_suggestions"
-        st.session_state.scroll_to = "step3"
         st.rerun()
     elif confirm_button and not refined_input:
         st.error("Please provide some details before confirming!")
@@ -217,7 +196,7 @@ elif st.session_state.stage == "refine_preferences":
 # Stage 3: Activity Suggestions
 elif st.session_state.stage == "activity_suggestions":
     prefs = st.session_state.preferences
-    st.markdown('<div class="section-header" id="step3">Step 3: Explore Activity Suggestions</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-header">Step 3: Explore Activity Suggestions</div>', unsafe_allow_html=True)
     st.write("Based on your preferences, here are some exciting activities:")
     st.markdown('<div class="suggestion-box">1. Louvre Museum - Iconic art like the Mona Lisa (~€17).</div>', unsafe_allow_html=True)
     st.markdown('<div class="suggestion-box">2. Musée d’Orsay - Impressionist masterpieces (~€14).</div>', unsafe_allow_html=True)
@@ -238,14 +217,12 @@ elif st.session_state.stage == "activity_suggestions":
             "Canal Saint-Martin Picnic", "Street Art in Belleville"
         ]
         st.session_state.stage = "itinerary_generation"
-        st.session_state.scroll_to = "step4"
         st.rerun()
 
 # Stage 4: Itinerary Generation
 elif st.session_state.stage == "itinerary_generation":
     prefs = st.session_state.preferences
-    st.markdown('<div class="section-header" id="step4">Step 4: Your Personalized Itinerary</div>', unsafe_allow_html=True)
-    st.image(destination_images.get(prefs.get("destination", "Paris"), destination_images["Paris"]), caption="Bon Voyage!", use_container_width=True)
+    st.markdown('<div class="section-header">Step 4: Your Personalized Itinerary</div>', unsafe_allow_html=True)
     st.write(f"Here’s your tailored 7-day {prefs.get('destination', 'Paris')} itinerary:")
     itinerary = [
         f'<div class="itinerary-card"><i class="fas fa-plane-arrival"></i> <strong>Day 1: June 1 – Arrival & Le Marais</strong><br>- Afternoon: Arrive, check into {prefs.get("accommodation", "budget-friendly central")} hotel. Le Marais Food Stroll (~2 miles).</div>',
@@ -258,26 +235,16 @@ elif st.session_state.stage == "itinerary_generation":
     ]
     for day in itinerary:
         st.markdown(day, unsafe_allow_html=True)
+    st.image(destination_images.get(prefs.get("destination", "Paris"), destination_images["Paris"]), caption="Bon Voyage!", use_container_width=True)
     
-    # Pop-up prompt
-    st.markdown("""
-        <script>
-        alert("Your itinerary is ready! Click 'Continue' to proceed or 'Start Over' to plan a new trip.");
-        </script>
-    """, unsafe_allow_html=True)
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button("Continue", key="continue"):
-            st.write("Enjoy your trip!")
-    with col2:
-        with st.form(key="start_over_form"):
-            start_over_button = st.form_submit_button(label="Start Over", help="Plan another trip!")
-            if start_over_button:
-                st.session_state.stage = "input_refinement"
-                st.session_state.preferences = {}
-                st.session_state.activities = []
-                st.session_state.scroll_to = "step1"
-                st.rerun()
+    with st.form(key="start_over_form"):
+        start_over_button = st.form_submit_button(label="Start Over", help="Plan another trip!")
+    
+    if start_over_button:
+        st.session_state.stage = "input_refinement"
+        st.session_state.preferences = {}
+        st.session_state.activities = []
+        st.rerun()
 
 # Footer
 st.markdown("---")
