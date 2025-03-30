@@ -2,6 +2,7 @@ import streamlit as st
 import re
 from datetime import datetime, timedelta
 import random
+from collections import defaultdict
 
 # Custom CSS for updated aesthetics
 st.markdown("""
@@ -100,34 +101,230 @@ if "activities" not in st.session_state:
 if "scroll_to" not in st.session_state:
     st.session_state.scroll_to = None
 
-# Enhanced destination database with images and activities
+# Enhanced Destination Database with 20+ locations
 DESTINATION_DATA = {
+    # Europe
     "Paris": {
         "image": "https://images.unsplash.com/photo-1502602898657-3e91760cbb34",
         "activities": {
-            "art": ["Louvre Museum", "Musée d'Orsay", "Centre Pompidou"],
-            "food": ["Le Marais Food Tour", "Montmartre Cafés", "Seine River Dinner Cruise"],
-            "history": ["Eiffel Tower", "Notre-Dame", "Arc de Triomphe"],
-            "nature": ["Luxembourg Gardens", "Bois de Boulogne", "Seine River Walk"]
-        }
+            "art": ["Louvre Museum", "Musée d'Orsay", "Centre Pompidou", "Rodin Museum", "Musée de l'Orangerie"],
+            "landmarks": ["Eiffel Tower", "Notre-Dame Cathedral", "Arc de Triomphe", "Sacre-Coeur", "Palais Garnier"],
+            "food": ["Le Marais Food Tour", "Montmartre Cafés", "Seine River Dinner Cruise", "Patisserie Tour", "Cheese & Wine Tasting"],
+            "culture": ["Latin Quarter Walk", "Shakespeare & Company", "Père Lachaise Cemetery", "Moulin Rouge", "Opera Garnier Tour"]
+        },
+        "country": "France"
     },
     "London": {
         "image": "https://images.unsplash.com/photo-1529655682523-44aca611b2d0",
         "activities": {
-            "art": ["Tate Modern", "National Gallery", "Victoria and Albert Museum"],
-            "food": ["Borough Market", "Afternoon Tea", "East End Food Tour"],
-            "history": ["Tower of London", "Westminster Abbey", "Buckingham Palace"],
-            "nature": ["Hyde Park", "Kew Gardens", "Thames Path Walk"]
-        }
+            "history": ["Tower of London", "Westminster Abbey", "Buckingham Palace", "St. Paul's Cathedral", "Churchill War Rooms"],
+            "museums": ["British Museum", "Natural History Museum", "Tate Modern", "Victoria & Albert Museum", "Science Museum"],
+            "food": ["Borough Market", "Afternoon Tea", "East End Food Tour", "Gin Tasting", "Sunday Roast Experience"],
+            "parks": ["Hyde Park", "Regent's Park", "Kew Gardens", "Greenwich Park", "Hampstead Heath"]
+        },
+        "country": "UK"
     },
+    "Rome": {
+        "image": "https://images.unsplash.com/photo-1552832230-c0197dd311b5",
+        "activities": {
+            "history": ["Colosseum", "Roman Forum", "Pantheon", "Palatine Hill", "Baths of Caracalla"],
+            "art": ["Vatican Museums", "Sistine Chapel", "Galleria Borghese", "Capitoline Museums"],
+            "food": ["Trastevere Food Tour", "Gelato Tasting", "Pasta Making Class", "Testaccio Market"],
+            "religion": ["St. Peter's Basilica", "Trevi Fountain", "Spanish Steps", "Catacombs Tour"]
+        },
+        "country": "Italy"
+    },
+    "Barcelona": {
+        "image": "https://images.unsplash.com/photo-1523531294919-4bcd7c65e216",
+        "activities": {
+            "architecture": ["Sagrada Familia", "Park Güell", "Casa Batlló", "La Pedrera"],
+            "beaches": ["Barceloneta Beach", "Bogatell Beach", "Nova Icaria Beach"],
+            "food": ["La Boqueria Market", "Tapas Tour", "Paella Cooking Class"],
+            "culture": ["Gothic Quarter", "Picasso Museum", "Flamenco Show"]
+        },
+        "country": "Spain"
+    },
+    "Amsterdam": {
+        "image": "https://images.unsplash.com/photo-1512470876302-972faa2aa9a4",
+        "activities": {
+            "culture": ["Van Gogh Museum", "Anne Frank House", "Rijksmuseum"],
+            "canals": ["Canal Cruise", "Jordaan District Walk", "Houseboat Museum"],
+            "history": ["Rembrandt House", "Jewish Historical Museum", "Dutch Resistance Museum"],
+            "unique": ["Heineken Experience", "Albert Cuyp Market", "Vondelpark Bike Tour"]
+        },
+        "country": "Netherlands"
+    },
+    "Vienna": {
+        "image": "https://images.unsplash.com/photo-1516550893923-42d28e5677af",
+        "activities": {
+            "music": ["Vienna State Opera", "Mozart House", "Strauss Concert"],
+            "palaces": ["Schönbrunn Palace", "Hofburg Palace", "Belvedere Palace"],
+            "cafes": ["Sachertorte at Hotel Sacher", "Demel Cafe", "Central Cafe"],
+            "museums": ["Kunsthistorisches Museum", "Albertina", "Leopold Museum"]
+        },
+        "country": "Austria"
+    },
+    "Prague": {
+        "image": "https://images.unsplash.com/photo-1519677100203-a0e668c92439",
+        "activities": {
+            "history": ["Prague Castle", "Charles Bridge", "Old Town Square"],
+            "culture": ["Astronomical Clock", "Jewish Quarter", "Kafka Museum"],
+            "food": ["Beer Tasting", "Trdelník Making", "Traditional Czech Dinner"],
+            "views": ["Petrin Tower", "Vltava River Cruise", "Vyšehrad Castle"]
+        },
+        "country": "Czech Republic"
+    },
+    "Istanbul": {
+        "image": "https://images.unsplash.com/photo-1527838832700-5059252407fa",
+        "activities": {
+            "history": ["Hagia Sophia", "Blue Mosque", "Topkapi Palace", "Basilica Cistern"],
+            "markets": ["Grand Bazaar", "Spice Bazaar", "Arasta Bazaar"],
+            "culture": ["Bosphorus Cruise", "Turkish Bath Experience", "Whirling Dervishes Show"],
+            "food": ["Kebab Tasting", "Baklava Workshop", "Turkish Coffee Reading"]
+        },
+        "country": "Turkey"
+    },
+    "Reykjavik": {
+        "image": "https://images.unsplash.com/photo-1529963183134-61a90db47eaf",
+        "activities": {
+            "nature": ["Blue Lagoon", "Golden Circle", "Northern Lights Tour"],
+            "adventure": ["Glacier Hiking", "Whale Watching", "Ice Cave Exploration"],
+            "culture": ["Hallgrimskirkja", "Harpa Concert Hall", "National Museum"],
+            "unique": ["Volcano Tour", "Geothermal Bakery", "Puffin Watching"]
+        },
+        "country": "Iceland"
+    },
+
+    # Asia
     "Tokyo": {
         "image": "https://images.unsplash.com/photo-1542051841857-5f90071e7989",
         "activities": {
-            "art": ["Mori Art Museum", "TeamLab Planets", "Edo-Tokyo Museum"],
-            "food": ["Tsukiji Fish Market", "Ramen Tasting", "Izakaya Hopping"],
-            "history": ["Senso-ji Temple", "Meiji Shrine", "Imperial Palace"],
-            "nature": ["Shinjuku Gyoen", "Ueno Park", "Mount Takao Hike"]
-        }
+            "culture": ["Senso-ji Temple", "Meiji Shrine", "Imperial Palace", "Akihabara District", "Robot Restaurant"],
+            "food": ["Tsukiji Fish Market", "Ramen Tasting", "Izakaya Hopping", "Sushi Making Class", "Kaiseki Dinner"],
+            "modern": ["Shibuya Crossing", "TeamLab Planets", "Tokyo Skytree", "Odaiba District", "Ghibli Museum"],
+            "nature": ["Shinjuku Gyoen", "Ueno Park", "Mount Takao Hike", "Hamarikyu Gardens", "Sumida River Cruise"]
+        },
+        "country": "Japan"
+    },
+    "Bangkok": {
+        "image": "https://images.unsplash.com/photo-1563492065599-3520f775eeed",
+        "activities": {
+            "temples": ["Grand Palace", "Wat Pho", "Wat Arun", "Wat Benchamabophit"],
+            "markets": ["Chatuchak Weekend Market", "Floating Markets", "Chinatown Street Food", "Rod Fai Night Market"],
+            "culture": ["Thai Cooking Class", "Muay Thai Match", "Traditional Dance Show", "Longtail Boat Tour"],
+            "modern": ["Sky Bar", "ICONSIAM Mall", "Mahanakhon Skywalk", "Art in Paradise Museum"]
+        },
+        "country": "Thailand"
+    },
+    "Singapore": {
+        "image": "https://images.unsplash.com/photo-1565967511849-76a60a516170",
+        "activities": {
+            "modern": ["Marina Bay Sands", "Gardens by the Bay", "Sentosa Island"],
+            "culture": ["Chinatown", "Little India", "Kampong Glam"],
+            "food": ["Hawker Centre Tour", "Chili Crab Dinner", "Singapore Sling at Raffles"],
+            "nature": ["Singapore Zoo", "Botanic Gardens", "MacRitchie Reservoir"]
+        },
+        "country": "Singapore"
+    },
+    "Bali": {
+        "image": "https://images.unsplash.com/photo-1537996194471-e657df975ab4",
+        "activities": {
+            "temples": ["Tanah Lot", "Uluwatu Temple", "Besakih Temple"],
+            "nature": ["Tegallalang Rice Terraces", "Mount Batur Sunrise", "Sekumpul Waterfall"],
+            "beaches": ["Seminyak", "Nusa Dua", "Padang Padang"],
+            "culture": ["Balinese Dance Show", "Silver Jewelry Making", "Ubud Monkey Forest"]
+        },
+        "country": "Indonesia"
+    },
+    "Hong Kong": {
+        "image": "https://images.unsplash.com/photo-1531259683007-016a7b628fc3",
+        "activities": {
+            "views": ["Victoria Peak", "Star Ferry", "Ngong Ping 360"],
+            "culture": ["Tian Tan Buddha", "Wong Tai Sin Temple", "Man Mo Temple"],
+            "food": ["Dim Sum Tour", "Temple Street Night Market", "Egg Waffle Making"],
+            "shopping": ["Causeway Bay", "Mong Kok Markets", "Stanley Market"]
+        },
+        "country": "China"
+    },
+
+    # North America
+    "New York": {
+        "image": "https://images.unsplash.com/photo-1499092346589-b9b6be3e94b2",
+        "activities": {
+            "landmarks": ["Statue of Liberty", "Empire State Building", "Times Square", "Central Park", "Brooklyn Bridge"],
+            "museums": ["Metropolitan Museum", "MOMA", "Natural History Museum", "Guggenheim", "Whitney Museum"],
+            "food": ["Pizza Tour", "Chinatown Food Crawl", "Bagel Tasting", "Broadway Dinner Package", "Speakeasy Cocktail Tour"],
+            "culture": ["Broadway Show", "High Line Walk", "Harlem Gospel Tour", "5th Avenue Shopping", "Yankees Game"]
+        },
+        "country": "USA"
+    },
+    "Cancun": {
+        "image": "https://images.unsplash.com/photo-1519794206461-cccd885bf209",
+        "activities": {
+            "beaches": ["Playa Delfines", "Isla Mujeres", "Playa Norte", "Xpu-Ha Beach"],
+            "ruins": ["Chichen Itza", "Tulum Ruins", "Coba Ruins", "Ek Balam"],
+            "adventure": ["Xcaret Park", "Xel-Ha Park", "Cenote Diving", "Sian Ka'an Biosphere"],
+            "nightlife": ["Coco Bongo", "Mandala Beach Club", "La Vaquita", "The City Nightclub"]
+        },
+        "country": "Mexico"
+    },
+
+    # Middle East
+    "Dubai": {
+        "image": "https://images.unsplash.com/photo-1518684079-3c830dcef090",
+        "activities": {
+            "modern": ["Burj Khalifa", "Dubai Mall", "Palm Jumeirah", "Dubai Marina", "Museum of the Future"],
+            "culture": ["Dubai Creek", "Gold Souk", "Bastakiya Quarter", "Jumeirah Mosque"],
+            "desert": ["Desert Safari", "Dune Bashing", "Camel Riding", "Sandboarding"],
+            "luxury": ["Burj Al Arab", "Atlantis Waterpark", "Helicopter Tour", "Yacht Cruise"]
+        },
+        "country": "UAE"
+    },
+
+    # Africa
+    "Cape Town": {
+        "image": "https://images.unsplash.com/photo-1516026672322-bc52d61a60d0",
+        "activities": {
+            "nature": ["Table Mountain", "Cape Point", "Kirstenbosch Gardens", "Boulders Beach Penguins"],
+            "wine": ["Stellenbosch Wine Tour", "Franschhoek Wine Tram", "Constantia Wine Route"],
+            "history": ["Robben Island", "District Six Museum", "Bo-Kaap Walking Tour"],
+            "adventure": ["Lion's Head Hike", "Shark Cage Diving", "Paragliding Signal Hill"]
+        },
+        "country": "South Africa"
+    },
+
+    # Oceania
+    "Sydney": {
+        "image": "https://images.unsplash.com/photo-1506973035872-a4ec16b8e8d9",
+        "activities": {
+            "landmarks": ["Sydney Opera House", "Harbour Bridge", "Bondi Beach", "The Rocks"],
+            "nature": ["Blue Mountains", "Taronga Zoo", "Royal Botanic Garden", "Manly Beach Walk"],
+            "food": ["Sydney Fish Market", "The Grounds of Alexandria", "Chinatown Food Tour", "Wine Tasting in Hunter Valley"],
+            "culture": ["Art Gallery of NSW", "Sydney Tower Eye", "Darling Harbour", "Luna Park"]
+        },
+        "country": "Australia"
+    },
+
+    # South America
+    "Rio de Janeiro": {
+        "image": "https://images.unsplash.com/photo-1483729558449-99ef09a8c325",
+        "activities": {
+            "landmarks": ["Christ the Redeemer", "Sugarloaf Mountain", "Selaron Steps"],
+            "beaches": ["Copacabana", "Ipanema", "Leblon"],
+            "nature": ["Tijuca Forest", "Botanical Garden", "Pedra da Gavea Hike"],
+            "culture": ["Samba Show", "Favela Tour", "Museum of Tomorrow"]
+        },
+        "country": "Brazil"
+    },
+    "Cairo": {
+        "image": "https://images.unsplash.com/photo-1572252009286-268acec5ca0a",
+        "activities": {
+            "pyramids": ["Giza Pyramids", "Sphinx", "Saqqara Pyramid"],
+            "museums": ["Egyptian Museum", "Coptic Museum", "Islamic Art Museum"],
+            "culture": ["Khan el-Khalili Bazaar", "Nile Dinner Cruise", "Al-Azhar Park"],
+            "history": ["Dahshur Pyramids", "Memphis Ruins", "Citadel of Saladin"]
+        },
+        "country": "Egypt"
     }
 }
 
@@ -139,7 +336,8 @@ DEFAULT_DESTINATION = {
         "food": ["Food Market Tour", "Cooking Class", "Local Restaurant Crawl"],
         "history": ["Historical Walking Tour", "Old Town Exploration", "Landmark Visits"],
         "nature": ["City Park", "Botanical Gardens", "Scenic Walk"]
-    }
+    },
+    "country": "Unknown"
 }
 
 # Enhanced input parsing functions
@@ -152,7 +350,10 @@ def parse_destination(text):
     partial_matches = {
         "par": "Paris",
         "lon": "London",
-        "tok": "Tokyo"
+        "tok": "Tokyo",
+        "ny": "New York",
+        "barca": "Barcelona",
+        "rio": "Rio de Janeiro"
     }
     for partial, full in partial_matches.items():
         if partial in text_lower:
@@ -192,15 +393,17 @@ def parse_dates(text):
         today = datetime.now()
         next_month = today + timedelta(days=30)
         return f"{today.strftime('%b %d')} - {next_month.strftime('%b %d, %Y')}"
+    elif "weekend" in text_lower:
+        return "Weekend getaway (2 days)"
     
     return "Within next month"  # Final fallback
 
 def parse_budget(text):
     text_lower = text.lower()
     budget_keywords = {
-        "luxury": ["luxury", "high-end", "expensive", "5-star"],
-        "moderate": ["moderate", "mid-range", "average"],
-        "budget": ["budget", "cheap", "affordable", "low-cost"]
+        "luxury": ["luxury", "high-end", "expensive", "5-star", "premium"],
+        "moderate": ["moderate", "mid-range", "average", "comfortable"],
+        "budget": ["budget", "cheap", "affordable", "low-cost", "economy"]
     }
     for level, keywords in budget_keywords.items():
         if any(keyword in text_lower for keyword in keywords):
@@ -209,12 +412,14 @@ def parse_budget(text):
 
 def parse_interests(text):
     interest_map = {
-        "art": ["art", "museum", "gallery", "painting", "sculpture"],
-        "food": ["food", "restaurant", "cuisine", "dining", "eat", "drink"],
-        "history": ["history", "historical", "monument", "landmark", "ancient"],
-        "nature": ["nature", "park", "garden", "hike", "outdoor", "walk"],
-        "shopping": ["shop", "mall", "market", "boutique", "store"],
-        "adventure": ["adventure", "hiking", "trek", "explore", "active"]
+        "art": ["art", "museum", "gallery", "painting", "sculpture", "exhibition"],
+        "food": ["food", "restaurant", "cuisine", "dining", "eat", "drink", "culinary"],
+        "history": ["history", "historical", "monument", "landmark", "ancient", "archaeology"],
+        "nature": ["nature", "park", "garden", "hike", "outdoor", "walk", "wildlife"],
+        "shopping": ["shop", "mall", "market", "boutique", "store", "souvenir"],
+        "adventure": ["adventure", "hiking", "trek", "explore", "active", "sport"],
+        "culture": ["culture", "local", "traditional", "festival", "heritage"],
+        "beach": ["beach", "coast", "shore", "island", "ocean"]
     }
     
     interests = []
@@ -222,7 +427,7 @@ def parse_interests(text):
     for interest, keywords in interest_map.items():
         if any(keyword in text_lower for keyword in keywords):
             interests.append(interest)
-    return interests if interests else ["art", "food"]
+    return interests if interests else ["culture", "food"]
 
 # Helper function for default interests
 def get_default_interests(prefs):
@@ -302,7 +507,7 @@ elif st.session_state.stage == "refine_preferences":
     # Display destination image
     st.markdown(f"""
         <div class="image-container" style="background-image: url('{image_url}');">
-            <div class="image-overlay">{prefs.get('destination', 'Your Destination')} Awaits!</div>
+            <div class="image-overlay">{prefs.get('destination', 'Your Destination')}, {dest_data.get('country', '')}</div>
         </div>
     """, unsafe_allow_html=True)
     
@@ -323,7 +528,7 @@ elif st.session_state.stage == "refine_preferences":
         
         new_dest = st.selectbox(
             "Destination:",
-            list(DESTINATION_DATA.keys()),
+            sorted(list(DESTINATION_DATA.keys())),
             index=list(DESTINATION_DATA.keys()).index(prefs["destination"]) if prefs["destination"] in DESTINATION_DATA else 0
         )
         
@@ -335,7 +540,7 @@ elif st.session_state.stage == "refine_preferences":
             index=["budget", "moderate", "luxury"].index(prefs["budget"])
         )
         
-        interest_options = ["Art", "Food", "History", "Nature", "Shopping", "Adventure"]
+        interest_options = ["Art", "Food", "History", "Nature", "Shopping", "Adventure", "Culture", "Beach"]
         default_interests = get_default_interests(prefs)
         new_interests = st.multiselect(
             "Your Interests:",
@@ -375,19 +580,21 @@ elif st.session_state.stage == "activity_suggestions":
     
     # Generate activity suggestions
     activities = []
-    for interest in prefs.get("interests", ["art", "food"]):
+    for interest in prefs.get("interests", ["culture", "food"]):
         if interest in dest_data["activities"]:
             activities.extend(dest_data["activities"][interest])
     
-    # Ensure we have enough activities
-    if len(activities) < 5:
+    # Ensure we have enough activities (minimum 7)
+    if len(activities) < 7:
         all_activities = []
         for interest_acts in dest_data["activities"].values():
             all_activities.extend(interest_acts)
-        activities.extend(random.sample(all_activities, min(5 - len(activities), len(all_activities))))
+        additional_needed = 7 - len(activities)
+        activities.extend(random.sample([act for act in all_activities if act not in activities], 
+                                      min(additional_needed, len(all_activities))))
     
     # Display activities with tags
-    for i, activity in enumerate(activities[:7]):  # Show max 7 activities
+    for i, activity in enumerate(activities[:14]):  # Show max 14 activities
         related_interests = [
             interest for interest in prefs.get("interests", []) 
             if any(act.lower() in activity.lower() for act in dest_data["activities"].get(interest, []))
@@ -411,7 +618,7 @@ elif st.session_state.stage == "activity_suggestions":
         st.session_state.scroll_to = "step4"
         st.rerun()
 
-# Stage 4: Itinerary Generation (Fixed Version)
+# Stage 4: Itinerary Generation (Optimized Version)
 elif st.session_state.stage == "itinerary_generation":
     prefs = st.session_state.preferences
     activities = st.session_state.activities
@@ -428,51 +635,70 @@ elif st.session_state.stage == "itinerary_generation":
                 end_date = datetime.strptime(date_parts[1].replace(",", ""), "%b %d %Y")
                 num_days = (end_date - start_date).days + 1
             else:
-                num_days = 5  # Default
+                num_days = 7  # Default to 7 days
         else:
             num_days = 3 if "weekend" in prefs["dates"].lower() else 7
     except:
-        num_days = 5
+        num_days = 7  # Default to 7 days
     
-    # Create a shuffled copy of activities
-    shuffled_activities = activities.copy()
-    random.shuffle(shuffled_activities)
-    
-    # Distribute activities across days ensuring variety
-    daily_activities = {}
-    activity_index = 0
-    
-    for day_num in range(1, min(num_days, 7) + 1):  # Max 7 days
-        daily_activities[day_num] = []
+    # Optimized itinerary generation
+    def generate_itinerary(activities, num_days):
+        # Group activities by interest categories
+        activity_groups = defaultdict(list)
+        for act in activities:
+            for interest in prefs.get("interests", []):
+                if interest.lower() in act.lower():
+                    activity_groups[interest].append(act)
         
-        # Add 2 activities per day
-        for _ in range(2):
-            if activity_index >= len(shuffled_activities):
-                # If we run out of activities, reshuffle (but exclude already used ones)
-                remaining = [act for act in activities if act not in [a for day in daily_activities.values() for a in day]]
-                if not remaining:
-                    remaining = activities.copy()  # If all used, start over
-                random.shuffle(remaining)
-                shuffled_activities = remaining
-                activity_index = 0
+        # Create a pool of all activities
+        activity_pool = activities.copy()
+        random.shuffle(activity_pool)
+        
+        daily_plans = {}
+        used_activities = set()
+        
+        for day in range(1, min(num_days, 7) + 1):  # Max 7 days
+            daily_plans[day] = []
             
-            daily_activities[day_num].append(shuffled_activities[activity_index])
-            activity_index += 1
+            # Try to get one activity from each interest group first
+            for interest in random.sample(list(activity_groups.keys()), len(activity_groups)):
+                available = [act for act in activity_groups[interest] if act not in used_activities]
+                if available and len(daily_plans[day]) < 2:
+                    selected = random.choice(available)
+                    daily_plans[day].append(selected)
+                    used_activities.add(selected)
+            
+            # Fill remaining slots with unused activities
+            remaining = [act for act in activity_pool if act not in used_activities]
+            while len(daily_plans[day]) < 2 and remaining:
+                selected = remaining.pop()
+                daily_plans[day].append(selected)
+                used_activities.add(selected)
+            
+            # If still not enough, reuse least used activities
+            if len(daily_plans[day]) < 2:
+                activity_usage = {act: sum(1 for d in daily_plans.values() if act in d) for act in activities}
+                least_used = sorted(activity_usage.items(), key=lambda x: x[1])[:5]
+                for act, count in least_used:
+                    if len(daily_plans[day]) < 2:
+                        daily_plans[day].append(act)
+        
+        return daily_plans
     
-    # Generate itinerary cards
-    for day_num, day_acts in daily_activities.items():
+    itinerary = generate_itinerary(activities, num_days)
+    
+    # Display itinerary
+    for day_num, day_acts in itinerary.items():
         day_title = f"Day {day_num}"
         if day_num == 1:
             day_title += " - Arrival"
         elif day_num == num_days:
             day_title += " - Departure"
         
-        activities_html = "<br>- " + "<br>- ".join(day_acts)
-        
         st.markdown(f"""
             <div class="itinerary-card">
-                <i class="fas fa-calendar-day"></i> <strong>{day_title}</strong>
-                {activities_html}
+                <i class="fas fa-calendar-day"></i> <strong>{day_title}</strong><br>
+                - {'<br>- '.join(day_acts)}
             </div>
         """, unsafe_allow_html=True)
     
