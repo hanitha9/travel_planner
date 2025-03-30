@@ -536,7 +536,7 @@ def main():
             with st.form("trip_input"):
                 user_input = st.text_area(
                     "Describe your trip (destination, dates, budget, interests):",
-                    value="Bangkok from New York, Jun 1-4, 2025, budget, art and food",
+                    value="Tokyo from New York, Jun 1-10, 2025, budget, art and food",
                     height=150,
                     key="trip_input_text"
                 )
