@@ -361,42 +361,97 @@ def parse_destination(text):
     return None
 
 def parse_dates(text):
-    # Try different date patterns
-    patterns = [
-        (r"\b(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})\b", "%m/%d/%Y"),  # MM/DD/YYYY
-        (r"\b(\d{1,2})\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+(\d{4})\b", "%d %b %Y"),
-        (r"\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+(\d{1,2})\s*-\s*(\d{1,2})\b", "%b %d-%d")
+    text_lower = text.lower()
+    
+    # Try to extract specific date ranges first
+    date_range_patterns = [
+        # MM/DD/YYYY - MM/DD/YYYY
+        (r"\b(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})\s*[-–to]+\s*(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})\b", "%m/%d/%Y - %m/%d/%Y"),
+        # Month Day - Day, Year
+        (r"\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+(\d{1,2})\s*[-–to]+\s*(\d{1,2}),?\s+(\d{4})\b", "%b %d-%d, %Y"),
+        # Month Day - Month Day, Year
+        (r"\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+(\d{1,2})\s*[-–to]+\s*(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+(\d{1,2}),?\s+(\d{4})\b", "%b %d - %b %d, %Y"),
     ]
     
-    text_lower = text.lower()
-    for pattern, fmt in patterns:
+    for pattern, fmt in date_range_patterns:
         match = re.search(pattern, text_lower)
         if match:
             try:
-                if fmt == "%b %d-%d":
+                if fmt == "%b %d-%d, %Y":
                     month = match.group(1)
                     start_day = match.group(2)
                     end_day = match.group(3)
-                    year = datetime.now().year
+                    year = match.group(4)
                     return f"{month[:3].title()} {start_day}-{end_day}, {year}"
+                elif fmt == "%b %d - %b %d, %Y":
+                    start_month = match.group(1)
+                    start_day = match.group(2)
+                    end_month = match.group(3)
+                    end_day = match.group(4)
+                    year = match.group(5)
+                    return f"{start_month[:3].title()} {start_day} - {end_month[:3].title()} {end_day}, {year}"
                 else:
                     return match.group(0).title()
             except:
                 continue
     
-    # Relative dates
-    if "next week" in text_lower:
-        today = datetime.now()
-        next_week = today + timedelta(days=7)
-        return f"{today.strftime('%b %d')} - {next_week.strftime('%b %d, %Y')}"
-    elif "next month" in text_lower:
-        today = datetime.now()
-        next_month = today + timedelta(days=30)
-        return f"{today.strftime('%b %d')} - {next_month.strftime('%b %d, %Y')}"
-    elif "weekend" in text_lower:
-        return "Weekend getaway (2 days)"
+    # Try single dates with duration
+    single_date_patterns = [
+        # Starting MM/DD/YYYY for X days
+        (r"\b(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})\s+(?:for|on)\s+(\d+)\s+(day|week)s?\b", "%m/%d/%Y for %d %s"),
+        # Starting Month Day for X days
+        (r"\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+(\d{1,2})\s+(?:for|on)\s+(\d+)\s+(day|week)s?\b", "%b %d for %d %s"),
+    ]
     
-    return "Within next month"  # Final fallback
+    for pattern, fmt in single_date_patterns:
+        match = re.search(pattern, text_lower)
+        if match:
+            try:
+                if fmt == "%b %d for %d %s":
+                    month = match.group(1)
+                    day = match.group(2)
+                    duration = int(match.group(3))
+                    unit = match.group(4)
+                    if unit == "week":
+                        duration *= 7
+                    end_date = (datetime.strptime(f"{day} {month} {datetime.now().year}", "%d %b %Y") + timedelta(days=duration-1))
+                    return f"{month[:3].title()} {day} - {end_date.strftime('%b %d, %Y')} ({duration} days)"
+            except:
+                continue
+    
+    # Relative dates with duration
+    relative_patterns = [
+        (r"\bnext\s+week\s+(?:for|on)\s+(\d+)\s+days\b", "Next week for %d days"),
+        (r"\b(\d+)\s+(?:day|night)s?\s+(?:trip|stay|visit)\b", "%d-day trip"),
+    ]
+    
+    for pattern, fmt in relative_patterns:
+        match = re.search(pattern, text_lower)
+        if match:
+            try:
+                duration = int(match.group(1))
+                today = datetime.now()
+                end_date = today + timedelta(days=duration-1)
+                return f"{today.strftime('%b %d')} - {end_date.strftime('%b %d, %Y')} ({duration} days)"
+            except:
+                continue
+    
+    # Common phrases
+    common_phrases = {
+        "weekend": "Weekend getaway (2 days)",
+        "long weekend": "Long weekend (3-4 days)",
+        "next week": "Next week (7 days)",
+        "next month": "Next month (30 days)",
+        "summer vacation": "Summer vacation (7-14 days)",
+        "winter break": "Winter break (7-14 days)",
+    }
+    
+    for phrase, result in common_phrases.items():
+        if phrase in text_lower:
+            return result
+    
+    # Final fallback - ask for duration
+    return "Duration not specified"
 
 def parse_budget(text):
     text_lower = text.lower()
@@ -434,6 +489,36 @@ def get_default_interests(prefs):
     if "interests" in prefs:
         return [i.capitalize() for i in prefs["interests"]]
     return []
+
+# Helper function to get duration from dates string
+def get_duration_from_dates(dates_str):
+    # Extract duration from patterns like "(7 days)"
+    duration_match = re.search(r"\((\d+)\s+day", dates_str)
+    if duration_match:
+        return int(duration_match.group(1))
+    
+    # Calculate from date range
+    date_range_match = re.search(r"(\w+\s+\d+)\s*[-–]\s*(\w+\s+\d+)", dates_str)
+    if date_range_match:
+        try:
+            start_date = datetime.strptime(date_range_match.group(1), "%b %d")
+            end_date = datetime.strptime(date_range_match.group(2), "%b %d")
+            return (end_date - start_date).days + 1
+        except:
+            pass
+    
+    # Default durations for common phrases
+    common_durations = {
+        "weekend": 2,
+        "long weekend": 4,
+        "next week": 7,
+        "next month": 30
+    }
+    for phrase, days in common_durations.items():
+        if phrase.lower() in dates_str.lower():
+            return days
+    
+    return 7  # Default to one week
 
 # Header with Dynamic Image
 st.markdown('<div class="title">AI-Powered Travel Planner</div>', unsafe_allow_html=True)
@@ -534,6 +619,32 @@ elif st.session_state.stage == "refine_preferences":
         
         col1, col2 = st.columns(2)
         new_dates = col1.text_input("Travel Dates:", value=prefs["dates"])
+        
+        # Add duration selector if dates aren't specific
+        duration_days = 7  # Default
+        if "not specified" in prefs["dates"].lower() or "duration" in prefs["dates"].lower():
+            duration_options = {
+                "Weekend (2-3 days)": 3,
+                "Short trip (4-5 days)": 5,
+                "One week (7 days)": 7,
+                "Two weeks (14 days)": 14,
+                "Month-long (30 days)": 30
+            }
+            selected_duration = col2.selectbox(
+                "Trip Duration:",
+                options=list(duration_options.keys()),
+                index=2  # Default to one week
+            )
+            duration_days = duration_options[selected_duration]
+            today = datetime.now()
+            end_date = today + timedelta(days=duration_days-1)
+            new_dates = f"{today.strftime('%b %d')} - {end_date.strftime('%b %d, %Y')} ({duration_days} days)"
+        else:
+            # If dates are specified, calculate duration
+            duration_days = get_duration_from_dates(prefs["dates"])
+            if duration_days > 30:  # Cap at 30 days
+                duration_days = 30
+        
         new_budget = col2.selectbox(
             "Budget Level:",
             ["Budget", "Moderate", "Luxury"],
@@ -556,7 +667,8 @@ elif st.session_state.stage == "refine_preferences":
             "dates": new_dates,
             "budget": new_budget.lower(),
             "interests": [i.lower() for i in new_interests],
-            "start": prefs.get("start", "Not specified")
+            "start": prefs.get("start", "Not specified"),
+            "duration": duration_days
         }
         st.session_state.stage = "activity_suggestions"
         st.session_state.scroll_to = "step3"
@@ -576,7 +688,7 @@ elif st.session_state.stage == "activity_suggestions":
         </div>
     """, unsafe_allow_html=True)
     
-    st.write("### Based on your preferences, here are some great activities:")
+    st.write(f"### Based on your preferences, here are some great activities for your {prefs.get('duration', 7)}-day trip:")
     
     # Generate activity suggestions
     activities = []
@@ -584,17 +696,18 @@ elif st.session_state.stage == "activity_suggestions":
         if interest in dest_data["activities"]:
             activities.extend(dest_data["activities"][interest])
     
-    # Ensure we have enough activities (minimum 7)
-    if len(activities) < 7:
+    # Ensure we have enough activities (minimum 2 per day)
+    min_activities = prefs.get("duration", 7) * 2
+    if len(activities) < min_activities:
         all_activities = []
         for interest_acts in dest_data["activities"].values():
             all_activities.extend(interest_acts)
-        additional_needed = 7 - len(activities)
+        additional_needed = min_activities - len(activities)
         activities.extend(random.sample([act for act in all_activities if act not in activities], 
                                       min(additional_needed, len(all_activities))))
     
     # Display activities with tags
-    for i, activity in enumerate(activities[:14]):  # Show max 14 activities
+    for i, activity in enumerate(activities[:min_activities*2]):  # Show max 2x min activities
         related_interests = [
             interest for interest in prefs.get("interests", []) 
             if any(act.lower() in activity.lower() for act in dest_data["activities"].get(interest, []))
@@ -624,22 +737,10 @@ elif st.session_state.stage == "itinerary_generation":
     activities = st.session_state.activities
     
     st.markdown('<div class="section-header" id="step4">Step 4: Your Personalized Itinerary</div>', unsafe_allow_html=True)
-    st.write(f"### Here's your customized {prefs.get('destination', 'trip')} itinerary:")
+    st.write(f"### Here's your customized {prefs.get('duration', 7)}-day {prefs.get('destination', 'trip')} itinerary:")
     
-    # Parse dates to determine duration
-    try:
-        if "-" in prefs["dates"]:
-            date_parts = re.split(r"\s*-\s*", prefs["dates"])
-            if len(date_parts) == 2:
-                start_date = datetime.strptime(date_parts[0] + " " + date_parts[1].split(",")[-1].strip(), "%b %d %Y")
-                end_date = datetime.strptime(date_parts[1].replace(",", ""), "%b %d %Y")
-                num_days = (end_date - start_date).days + 1
-            else:
-                num_days = 7  # Default to 7 days
-        else:
-            num_days = 3 if "weekend" in prefs["dates"].lower() else 7
-    except:
-        num_days = 7  # Default to 7 days
+    # Get duration from preferences
+    num_days = prefs.get("duration", 7)
     
     # Optimized itinerary generation
     def generate_itinerary(activities, num_days):
@@ -657,7 +758,7 @@ elif st.session_state.stage == "itinerary_generation":
         daily_plans = {}
         used_activities = set()
         
-        for day in range(1, min(num_days, 7) + 1):  # Max 7 days
+        for day in range(1, min(num_days, 30) + 1):  # Max 30 days
             daily_plans[day] = []
             
             # Try to get one activity from each interest group first
