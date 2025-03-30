@@ -545,7 +545,7 @@ def main():
         fallback_options = ["Leisure time", "Local exploration", "Rest at your accommodation"]
         
         for day in range(1, duration + 1):
-Fh            current_date = (prefs["start_date"] + timedelta(days=day-1)).strftime("%A, %b %d")
+            current_date = (prefs["start_date"] + timedelta(days=day-1)).strftime("%A, %b %d")
             st.markdown(f"""
                 <div class='day-box'>
                     <div class='day-title'>Day {day}: {current_date}</div>
