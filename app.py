@@ -144,15 +144,17 @@ elif st.session_state.stage == "refine_preferences":
     st.markdown('<div class="question">4. How much walking are you comfortable with daily (in miles)?</div>', unsafe_allow_html=True)
     
     with st.form(key="refined_input_form"):
-        refined_input = st.text_area("Answer the questions above (one per line):", height=150, placeholder="e.g.,\nfamous museums\nnone\nbudget-friendly, central\n5")
+        refined_input = st.text_area("Tell me more about your preferences:", height=150, placeholder="e.g., I prefer famous museums, no dietary restrictions, budget-friendly central hotel, and about 5 miles walking daily.")
         confirm_button = st.form_submit_button(label="Confirm Details")
     
     if confirm_button and refined_input:
-        refined_lines = [line.strip() for line in refined_input.split("\n") if line.strip()]
-        specific_interests = refined_lines[0].lower() if refined_lines else "famous museums"
-        dietary = refined_lines[1].lower() if len(refined_lines) > 1 and "none" not in refined_lines[1].lower() else "none"
-        accommodation = refined_lines[2].lower() if len(refined_lines) > 2 else "budget-friendly, central"
-        mobility = re.search(r"(\d+)", refined_lines[3]).group(1) if len(refined_lines) > 3 and re.search(r"(\d+)", refined_lines[3]) else "5"
+        # Flexible parsing for freeform input
+        refined_text = refined_input.lower()
+        specific_interests = "famous museums" if "famous" in refined_text else "hidden galleries" if "hidden" in refined_text or "offbeat" in refined_text else "famous museums"
+        dietary = "none" if "none" in refined_text or "no dietary" in refined_text else "vegetarian" if "vegetarian" in refined_text else "none"
+        accommodation = "budget-friendly, central" if "budget" in refined_text or "central" in refined_text else "budget-friendly, central"
+        mobility_match = re.search(r"(\d+)\s*(miles|m)", refined_text)
+        mobility = mobility_match.group(1) if mobility_match else "5"
         
         st.session_state.preferences = {
             "dates": prefs.get("dates", "June 1–7, 2025"),
@@ -167,7 +169,7 @@ elif st.session_state.stage == "refine_preferences":
         st.session_state.stage = "activity_suggestions"
         st.rerun()
     elif confirm_button and not refined_input:
-        st.error("Please answer all questions before confirming!")
+        st.error("Please provide some details before confirming!")
 
 # Stage 3: Activity Suggestions
 elif st.session_state.stage == "activity_suggestions":
@@ -177,7 +179,7 @@ elif st.session_state.stage == "activity_suggestions":
     st.markdown('<div class="suggestion-box">2. Musée d’Orsay - Impressionist masterpieces (~€14).</div>', unsafe_allow_html=True)
     st.markdown('<div class="suggestion-box">3. Montmartre Art Walk - Historic artist district (~5 miles).</div>', unsafe_allow_html=True)
     st.markdown('<div class="suggestion-box">4. Le Marais Food Stroll - Casual falafel and pastries (~€6–10).</div>', unsafe_allow_html=True)
-    st.markdown('<div class="suggestion-box">5. Musée de l’Orsay - Impressionist masterpieces (~€14).</div>', unsafe_allow_html=True)
+    st.markdown('<div class="suggestion-box">5. Musée de l’Orangerie - Monet’s Water Lilies (~€12).</div>', unsafe_allow_html=True)
     st.markdown('<div class="suggestion-box">6. Canal Saint-Martin Picnic - Local bites by the canal (~€10).</div>', unsafe_allow_html=True)
     st.markdown('<div class="suggestion-box">7. Street Art in Belleville - Offbeat murals (~4 miles).</div>', unsafe_allow_html=True)
     st.image("https://images.unsplash.com/photo-1505205296326-2178af1b47bf?q=80&w=2070&auto=format&fit=crop", caption="Art and Culture in Paris", use_container_width=True)
@@ -200,16 +202,16 @@ elif st.session_state.stage == "itinerary_generation":
     prefs = st.session_state.preferences
     st.write(f"Here’s your tailored 7-day {prefs.get('destination', 'Paris')} itinerary:")
     itinerary = [
-        '<div class="itinerary-day"><strong>Day 1: June 1 – Arrival & Le Marais</strong><br>- Afternoon: Arrive, check into {prefs.get("accommodation", "budget-friendly central")} hotel. Le Marais Food Stroll (~2 miles).</div>',
-        '<div class="itinerary-day"><strong>Day 2: June 2 – Louvre</strong><br>- Morning: Louvre Museum (~€17, ~2 miles walking).</div>',
-        '<div class="itinerary-day"><strong>Day 3: June 3 – Impressionist Art</strong><br>- Morning: Musée d’Orsay (~€14). Afternoon: Musée de l’Orangerie (~€12, ~2.5 miles total).</div>',
-        '<div class="itinerary-day"><strong>Day 4: June 4 – Montmartre</strong><br>- Morning: Montmartre Art Walk (~5 miles).</div>',
-        '<div class="itinerary-day"><strong>Day 5: June 5 – Canal Saint-Martin</strong><br>- Morning: Canal Saint-Martin Picnic (~3 miles).</div>',
-        '<div class="itinerary-day"><strong>Day 6: June 6 – Belleville</strong><br>- Morning: Street Art in Belleville (~4 miles).</div>',
-        '<div class="itinerary-day"><strong>Day 7: June 7 – Departure</strong><br>- Morning: Depart from {prefs.get("destination", "Paris")}.</div>',
+        f'<div class="itinerary-day"><strong>Day 1: June 1 – Arrival & Le Marais</strong><br>- Afternoon: Arrive, check into {prefs.get("accommodation", "budget-friendly central")} hotel. Le Marais Food Stroll (~2 miles).</div>',
+        f'<div class="itinerary-day"><strong>Day 2: June 2 – Louvre</strong><br>- Morning: Louvre Museum (~€17, ~2 miles walking).</div>',
+        f'<div class="itinerary-day"><strong>Day 3: June 3 – Impressionist Art</strong><br>- Morning: Musée d’Orsay (~€14). Afternoon: Musée de l’Orangerie (~€12, ~2.5 miles total).</div>',
+        f'<div class="itinerary-day"><strong>Day 4: June 4 – Montmartre</strong><br>- Morning: Montmartre Art Walk (~5 miles).</div>',
+        f'<div class="itinerary-day"><strong>Day 5: June 5 – Canal Saint-Martin</strong><br>- Morning: Canal Saint-Martin Picnic (~3 miles).</div>',
+        f'<div class="itinerary-day"><strong>Day 6: June 6 – Belleville</strong><br>- Morning: Street Art in Belleville (~4 miles).</div>',
+        f'<div class="itinerary-day"><strong>Day 7: June 7 – Departure</strong><br>- Morning: Depart from {prefs.get("destination", "Paris")}.</div>',
     ]
     for day in itinerary:
-        st.markdown(day.format(prefs=prefs), unsafe_allow_html=True)
+        st.markdown(day, unsafe_allow_html=True)
     st.image("https://images.unsplash.com/photo-1491438590914-1f1f98f6c0b5?q=80&w=2070&auto=format&fit=crop", caption="Bon Voyage!", use_container_width=True)
     
     with st.form(key="start_over_form"):
